@@ -10,6 +10,7 @@ using MailKit.Security;
 using System.Linq;
 using MimeKit;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
+using System.Text;
 
 namespace AzureComputerVision 
 {
@@ -82,9 +83,11 @@ namespace AzureComputerVision
                     // fetch summary information for messages that we don't already have
                     int startIndex = messages.Count;
 
-                    fetched = SentFolder.Fetch(startIndex, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId | MessageSummaryItems.BodyStructure, cancel.Token);
+                    fetched = SentFolder.Fetch(startIndex, -1, MessageSummaryItems.Full | 
+                                                               MessageSummaryItems.UniqueId | 
+                                                               MessageSummaryItems.BodyStructure, cancel.Token);
                     break;
-                } 
+                }
                 catch (ImapProtocolException) 
                 {
                     // protocol exceptions often result in the client getting disconnected
@@ -110,29 +113,74 @@ namespace AzureComputerVision
 
         private async Task MaybeAnalyseImages(IMessageSummary item, IEnumerable<BodyPartBasic> attachments)
         {
-            Console.WriteLine($"Attachements count: {attachments.Count()}");
+            var attachmentCount = attachments.Count();
+
+            Console.WriteLine($"Attachments count: {attachmentCount}");
 
             // determine a directory to save stuff in
-            var directory = Path.Combine(baseDirectory, item.UniqueId.ToString ());
+            var directory = Path.Combine(baseDirectory, item.UniqueId.ToString());
 
             // create the directory
             Directory.CreateDirectory(directory);
 
-            foreach (var attachement in attachments) {
-                Console.WriteLine(attachement.ContentDescription);
-                Console.WriteLine(attachement.ContentDisposition);
-                Console.WriteLine(attachement.ContentId);
-                Console.WriteLine(attachement.ContentLocation);
-                Console.WriteLine(attachement.ContentMd5);
-                Console.WriteLine(attachement.ContentTransferEncoding);
-                Console.WriteLine(attachement.ContentType);
-                Console.WriteLine(attachement.FileName);
-                Console.WriteLine(attachement.IsAttachment);
-                Console.WriteLine(attachement.Octets);
-                Console.WriteLine(attachement.PartSpecifier);
+            if (attachmentCount == 0) {
+                Console.WriteLine("Look for a base64 image in the BodyParts");
+                foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg") == true)) {
+                    Console.WriteLine(part);
+                    Console.WriteLine(part.GetType());
 
-                if (attachement.FileName.EndsWith(".jpg")) {
-                    var entity = SentFolder.GetBodyPart(item.UniqueId, attachement);
+                    Console.WriteLine(part.ContentDescription);
+                    Console.WriteLine(part.ContentDisposition);
+                    Console.WriteLine(part.ContentId);
+                    Console.WriteLine(part.ContentLocation);
+                    Console.WriteLine(part.ContentMd5);
+                    Console.WriteLine(part.ContentTransferEncoding);
+                    Console.WriteLine(part.ContentType);
+                    Console.WriteLine(part.FileName);
+                    Console.WriteLine(part.IsAttachment);
+                    Console.WriteLine(part.Octets);
+                    Console.WriteLine(part.PartSpecifier);
+
+                    // note: it's possible for this to be null, but most will specify a filename
+                    var fileName = part.FileName;
+
+                    var path = Path.Combine(directory, fileName);
+
+                    var entity = SentFolder.GetBodyPart(item.UniqueId, part);
+
+                    using (var stream = new MemoryStream())
+                    {
+                        entity.WriteTo(stream, cancel.Token);
+
+                        var imageString = Encoding.ASCII.GetString(stream.ToArray());
+
+                        ParseAndSaveImage(imageString, path);
+                    }
+
+                    using (ComputerVisionClient client = AzureImageMLApi.Authenticate(config))
+                    {
+                        await AzureImageMLApi.AnalyzeImage(client, path);
+                    }
+                }
+
+                return;
+            }
+
+            foreach (var attachment in attachments) {
+                Console.WriteLine(attachment.ContentDescription);
+                Console.WriteLine(attachment.ContentDisposition);
+                Console.WriteLine(attachment.ContentId);
+                Console.WriteLine(attachment.ContentLocation);
+                Console.WriteLine(attachment.ContentMd5);
+                Console.WriteLine(attachment.ContentTransferEncoding);
+                Console.WriteLine(attachment.ContentType);
+                Console.WriteLine(attachment.FileName);
+                Console.WriteLine(attachment.IsAttachment);
+                Console.WriteLine(attachment.Octets);
+                Console.WriteLine(attachment.PartSpecifier);
+
+                if (attachment.FileName.EndsWith(".jpg")) {
+                    var entity = SentFolder.GetBodyPart(item.UniqueId, attachment);
 
                     var part = (MimePart)entity;
 
@@ -150,6 +198,36 @@ namespace AzureComputerVision
                         await AzureImageMLApi.AnalyzeImage(client, path);
                     }
                 }
+            }
+        }
+
+        private void ParseAndSaveImage(string imageString, string path)
+        {
+            var sb = new StringBuilder();
+
+            var lines = imageString.Split('\n');
+
+            var parseImage = false;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i]))
+                {
+                    parseImage = true;
+                }
+
+                if (parseImage)
+                {
+                    if (string.IsNullOrWhiteSpace(lines[i]) == false)
+                    {
+                        sb.Append(lines[i]);
+                    }
+                }
+            }
+
+            using (var file = File.Create(path))
+            {
+                file.Write(Convert.FromBase64String(sb.ToString()));
             }
         }
 
@@ -217,12 +295,12 @@ namespace AzureComputerVision
             } while (!cancel.IsCancellationRequested);
         }
 
-        public async Task RunAsync ()
+        public async Task RunAsync()
         {
             // connect to the IMAP server and get our initial list of messages
             try 
             {
-                await ReconnectAsync ();
+                await ReconnectAsync();
                 await FetchMessageSummariesAsync(print: false, analyseImage: false);
             } 
             catch (OperationCanceledException) 
@@ -247,7 +325,7 @@ namespace AzureComputerVision
             // keep track of flag changes
             sentFolder.MessageFlagsChanged += OnMessageFlagsChanged;
 
-            await IdleAsync ();
+            await IdleAsync();
 
             sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
             sentFolder.MessageExpunged -= OnMessageExpunged;
