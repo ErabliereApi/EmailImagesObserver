@@ -19,13 +19,12 @@ namespace AzureComputerVision
         readonly string host, username, password;
         readonly SecureSocketOptions sslOptions;
         readonly int port;
-        List<IMessageSummary> messages;
-        CancellationTokenSource cancel;
+        readonly List<IMessageSummary> messages;
+        readonly CancellationTokenSource cancel;
         CancellationTokenSource? done;
         bool messagesArrived;
-        ImapClient client;
-
-        string baseDirectory;
+        readonly ImapClient client;
+        readonly string baseDirectory;
         private readonly LoginInfo config;
 
         public IdleClient(LoginInfo config, string baseDirectory)
@@ -74,9 +73,8 @@ namespace AzureComputerVision
 
         async Task FetchMessageSummariesAsync(bool print, bool analyseImage)
         {
-            IList<IMessageSummary>? fetched = null;
-
-            do 
+            IList<IMessageSummary>? fetched;
+            do
             {
                 try 
                 {
@@ -157,10 +155,8 @@ namespace AzureComputerVision
                         ParseAndSaveImage(imageString, path);
                     }
 
-                    using (ComputerVisionClient client = AzureImageMLApi.Authenticate(config))
-                    {
-                        await AzureImageMLApi.AnalyzeImage(client, path);
-                    }
+                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(config);
+                    await AzureImageMLApi.AnalyzeImage(client, path);
                 }
 
                 return;
@@ -189,19 +185,18 @@ namespace AzureComputerVision
 
                     var path = Path.Combine(directory, fileName);
 
-                    using (ComputerVisionClient client = AzureImageMLApi.Authenticate(config)) {
-
-                        using (var stream = File.Create(path)) {
-                            await part.Content.DecodeToAsync(stream);
-                        }
-
-                        await AzureImageMLApi.AnalyzeImage(client, path);
+                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(config);
+                    using (var stream = File.Create(path))
+                    {
+                        await part.Content.DecodeToAsync(stream);
                     }
+
+                    await AzureImageMLApi.AnalyzeImage(client, path);
                 }
             }
         }
 
-        private void ParseAndSaveImage(string imageString, string path)
+        private static void ParseAndSaveImage(string imageString, string path)
         {
             var sb = new StringBuilder();
 
@@ -225,10 +220,8 @@ namespace AzureComputerVision
                 }
             }
 
-            using (var file = File.Create(path))
-            {
-                file.Write(Convert.FromBase64String(sb.ToString()));
-            }
+            using var file = File.Create(path);
+            file.Write(Convert.FromBase64String(sb.ToString()));
         }
 
         async Task WaitForNewMessagesAsync()

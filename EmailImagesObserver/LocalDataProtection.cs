@@ -14,8 +14,8 @@ namespace AzureComputerVision
 
         public LocalDataProtection(IDataProtectionProvider  dataProtector)
         {
-            this.dataProtector = dataProtector.CreateProtector(Program.AppName);
-            this.settingsFile = Path.Combine(Program.GetBaseDirectory(), "settings.data");
+            this.dataProtector = dataProtector.CreateProtector(Constant.AppName);
+            this.settingsFile = Path.Combine(Constant.GetBaseDirectory(), "settings.data");
         }
 
         public void SaveLoginInfo(LoginInfo loginInfo)

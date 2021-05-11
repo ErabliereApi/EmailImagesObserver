@@ -12,7 +12,7 @@ namespace AzureComputerVision
     {
         public static ComputerVisionClient Authenticate(LoginInfo config)
         {
-            ComputerVisionClient client = new ComputerVisionClient(new ApiKeyServiceClientCredentials(config.AzureVisionSubscriptionKey))
+            ComputerVisionClient client = new (new ApiKeyServiceClientCredentials(config.AzureVisionSubscriptionKey))
             {
                 Endpoint = config.AzureVisionEndpoint
             };
@@ -43,19 +43,18 @@ namespace AzureComputerVision
 
             try
             {
-                using (var stream = File.OpenRead(path)) {
-                    // Analyze the local image.
-                    ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
+                using var stream = File.OpenRead(path);                     
+                // Analyze the local image.
+                ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
 
-                    var jsonResult = JsonSerializer.Serialize(results, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
+                var jsonResult = JsonSerializer.Serialize(results, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
 
-                    Console.WriteLine(jsonResult);
+                Console.WriteLine(jsonResult);
 
-                    File.WriteAllText(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
-                }
+                await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
             } 
             catch (Exception? e) 
             {
@@ -66,7 +65,6 @@ namespace AzureComputerVision
                     e = e.InnerException;
                 } while (e != null);
             }
-            
         }
     }
 }

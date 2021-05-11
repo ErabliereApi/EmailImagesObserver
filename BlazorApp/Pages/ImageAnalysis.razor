@@ -1,0 +1,105 @@
+﻿@page "/imageanalysis"
+
+@using BlazorApp.Data
+@inject ImageInfoService ImageInfoService
+@inject IJSRuntime JS
+
+<h1>Image Analysis</h1>
+
+<p>Here you can manage and look at the data.</p>
+
+@if (imageInfo == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Date</th>
+                <th>Dominant colors</th>
+                <th>Categories</th>
+                <th>Caption</th>
+                <th>Tags</th>
+                <th>Image</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var imageInfo in imageInfo)
+            {
+                var id = imageInfo.Id;
+                var title = "Delete image info " + id;
+
+                <tr id="imageinfo-@imageInfo">
+                    <td>@imageInfo.Id</td>
+                    <td>@imageInfo.Directory.CreationTime.ToShortDateString()</td>
+                    <td>@imageInfo.ImageAnalysis?.Color.DominantColors.Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Description.Tags.Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>
+                        <img src="@imageInfo.ImageLink" class="img-thumbnail" />
+                    </td>
+                    <td>
+                        <button @onclick="@(() => ConfirmDelete(id, title))" class="btn btn-danger">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="modal" id="myModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Confirm delete</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <input type="hidden" id="bookToDeleteField" @bind=@DeleteId />
+                    Are you sure you want to delete book <span id="bookTitleField"></span>?
+                </div>
+
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteImageInfo">Delete</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ImageInfo> imageInfo;
+
+    private int DeleteId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageInfo = await ImageInfoService.GetImageInfo();
+    }
+
+    protected void ConfirmDelete(int id, string title)
+    {
+        DeleteId = id;
+
+        JS.InvokeAsync<bool>("confirmDelete", title);
+    }
+
+    protected async Task DeleteImageInfo()
+    {
+        await JS.InvokeAsync<bool>("hideDeleteDialog");
+
+        ImageInfoService.DeleteImageInfo(DeleteId);
+        await OnInitializedAsync();
+    }
+}
