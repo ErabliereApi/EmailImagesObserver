@@ -1,14 +1,19 @@
-using AzureComputerVision;
-using System;
+﻿using AzureComputerVision;
+using BlazorApp.Data;
+using Microsoft.AspNet.OData;
+using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BlazorApp.Data
+namespace BlazorApp.Controller
 {
-    public class ImageInfoService
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ImageInfoController : ControllerBase
     {
+        [EnableQuery(PageSize = 15)]
         public async Task<IEnumerable<ImageInfo>> GetImageInfo()
         {
             return await Task.Run(() =>
@@ -19,12 +24,6 @@ namespace BlazorApp.Data
 
                 return infoArray;
             });
-        }
-
-        public void DeleteImageInfo(int id)
-        {
-            Directory.Delete(Path.Combine(Constant.GetBaseDirectory(), id.ToString()), true);
-            Console.WriteLine("Image info id " + id + " is deleted");
         }
     }
 }

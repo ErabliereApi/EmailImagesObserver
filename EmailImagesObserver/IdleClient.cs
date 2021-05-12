@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
@@ -71,7 +70,9 @@ namespace AzureComputerVision
             }
         }
 
-        async Task FetchMessageSummariesAsync(bool print, bool analyseImage)
+        /// <param name="print">Print in console few information on new message fetched</param>
+        /// <param name="analyseImage">A function that recieve the message uniqueId and indicate if the message need to be analysed</param>
+        async Task FetchMessageSummariesAsync(bool print, Func<string, bool> analyseImage)
         {
             IList<IMessageSummary>? fetched;
             do
@@ -104,7 +105,7 @@ namespace AzureComputerVision
                     Console.WriteLine ("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
                 messages.Add(message);
 
-                if (analyseImage)
+                if (analyseImage(message.UniqueId.ToString()))
                     await MaybeAnalyseImages(message, message.Attachments);
             }
         }
@@ -277,7 +278,7 @@ namespace AzureComputerVision
 
                     if (messagesArrived) 
                     {
-                        await FetchMessageSummariesAsync(print: true, analyseImage: true);
+                        await FetchMessageSummariesAsync(print: true, analyseImage: messageId => true);
                         messagesArrived = false;
                     }
                 } 
@@ -294,11 +295,11 @@ namespace AzureComputerVision
             try 
             {
                 await ReconnectAsync();
-                await FetchMessageSummariesAsync(print: false, analyseImage: false);
+                await FetchMessageSummariesAsync(print: false, analyseImage: messageId => Directory.Exists(Path.Combine(Constant.GetBaseDirectory(), messageId)) == false);
             } 
             catch (OperationCanceledException) 
             {
-                await client.DisconnectAsync (true);
+                await client.DisconnectAsync(true);
                 return;
             }
 

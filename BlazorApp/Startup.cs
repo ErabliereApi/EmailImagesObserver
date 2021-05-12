@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using BlazorApp.Data;
 using AzureComputerVision;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNet.OData.Extensions;
+using System.Text.Json.Serialization;
 
 namespace BlazorApp
 {
@@ -27,6 +25,13 @@ namespace BlazorApp
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllers()
+                    .AddJsonOptions(o => 
+                    { 
+                        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; 
+                        o.JsonSerializerOptions.MaxDepth = 64; 
+                    });
+            services.AddOData();
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<ImageInfoService>();
@@ -59,6 +64,10 @@ namespace BlazorApp
             {
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
+
+                endpoints.EnableDependencyInjection();
+                endpoints.Select().Expand().Filter().Count().MaxTop(100).OrderBy();
+                endpoints.MapControllers();
             });
         }
     }

@@ -1,7 +1,55 @@
-@page "/"
+﻿@page "/"
+@using AzureComputerVision;
+@using System.IO; 
 
 <h1>Email Images Observer!</h1>
 
 Welcome to email image observer app. Here you can watch info grab be the background process.
 
+<div class="card" style="width: 18rem;">
+    <div class="card-body">
+        <h5 class="card-title">Space used</h5>
+        <h6 class="card-subtitle mb-2 text-muted">@Constant.GetBaseDirectory()</h6>
+        <p class="card-text">@GetSpaceUsed()</p>
+    </div>
+</div>
 
+@code 
+{
+    protected string GetSpaceUsed()
+    {
+        var baseDirectory = new DirectoryInfo(Constant.GetBaseDirectory());
+
+        long size = 0;
+
+        foreach (var file in baseDirectory.EnumerateFiles())
+        {
+            size += file.Length;
+        }
+
+        foreach (var directory in baseDirectory.GetDirectories())
+        {
+            foreach (var file in directory.EnumerateFiles())
+            {
+                size += file.Length;
+            }
+        }
+
+        if (size < 1000)
+        {
+            return size + " bytes";
+        }
+        else if (size < 1000)
+        {
+            return size / 1000 + " kB";
+        }
+        else if (size < 10e6)
+        {
+            return size / 10e6 + " mB";
+        }
+        else
+        {
+            return size / 10e9 + "gB";
+        }
+    }
+}

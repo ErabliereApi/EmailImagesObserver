@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BlazorApp.Data
 {
@@ -12,6 +13,8 @@ namespace BlazorApp.Data
         public ImageInfo(DirectoryInfo directoryInfo)
         {
             Directory = directoryInfo;
+
+            CreationTime = Directory.CreationTime;
 
             var imageAnalysisFile = Directory.GetFiles().FirstOrDefault(f => f.Name == "info.json");
 
@@ -32,7 +35,10 @@ namespace BlazorApp.Data
 
         public int Id => int.Parse(Directory.Name);
 
+        [JsonIgnore]
         public DirectoryInfo Directory { get; }
+
+        public DateTimeOffset CreationTime { get; set; }
 
         public ImageAnalysis? ImageAnalysis { get; }
 

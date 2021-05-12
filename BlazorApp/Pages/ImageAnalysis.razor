@@ -1,4 +1,4 @@
-﻿@page "/imageanalysis"
+@page "/imageanalysis"
 
 @using BlazorApp.Data
 @inject ImageInfoService ImageInfoService
@@ -36,10 +36,10 @@ else
                 <tr id="imageinfo-@imageInfo">
                     <td>@imageInfo.Id</td>
                     <td>@imageInfo.Directory.CreationTime.ToShortDateString()</td>
-                    <td>@imageInfo.ImageAnalysis?.Color.DominantColors.Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
                     <td>@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>@imageInfo.ImageAnalysis?.Description.Tags.Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+                    <td>@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
                     <td>
                         <img src="@imageInfo.ImageLink" class="img-thumbnail" />
                     </td>
@@ -79,7 +79,7 @@ else
 }
 
 @code {
-    private List<ImageInfo> imageInfo;
+    private IEnumerable<ImageInfo> imageInfo;
 
     private int DeleteId;
 
