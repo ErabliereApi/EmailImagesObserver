@@ -39,17 +39,17 @@ Welcome to email image observer app. Here you can watch info grab be the backgro
         {
             return size + " bytes";
         }
-        else if (size < 1000)
-        {
-            return size / 1000 + " kB";
-        }
         else if (size < 10e6)
         {
-            return size / 10e6 + " mB";
+            return size / 10e2 + " kB";
+        }
+        else if (size < 10e9)
+        {
+            return size / 10e5 + " mB";
         }
         else
         {
-            return size / 10e9 + "gB";
+            return size / 10e8 + "gB";
         }
     }
 }

@@ -13,6 +13,8 @@ namespace BlazorApp.Data
         {
             return await Task.Run(() =>
             {
+                Console.WriteLine("Loading data from directory...");
+
                 var directory = new DirectoryInfo(Constant.GetBaseDirectory());
 
                 var infoArray = directory.GetDirectories().Select(d => new ImageInfo(d)).OrderByDescending(i => i.Id);

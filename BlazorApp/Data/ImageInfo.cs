@@ -16,15 +16,6 @@ namespace BlazorApp.Data
 
             CreationTime = Directory.CreationTime;
 
-            var imageAnalysisFile = Directory.GetFiles().FirstOrDefault(f => f.Name == "info.json");
-
-            if (imageAnalysisFile != null)
-            {
-                var analysis = File.ReadAllText(imageAnalysisFile.FullName);
-
-                ImageAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(analysis);
-            }
-
             var imageFile = Directory.GetFiles().FirstOrDefault(f => f.Name.EndsWith(".jpg"));
 
             if (imageFile != null)
@@ -40,7 +31,25 @@ namespace BlazorApp.Data
 
         public DateTimeOffset CreationTime { get; set; }
 
-        public ImageAnalysis? ImageAnalysis { get; }
+        private ImageAnalysis? _imageAnalysis;
+        public ImageAnalysis? ImageAnalysis
+        {
+            get
+            {
+                if (_imageAnalysis != null) return _imageAnalysis;
+
+                var imageAnalysisFile = Directory.GetFiles().FirstOrDefault(f => f.Name == "info.json");
+
+                if (imageAnalysisFile != null)
+                {
+                    var analysis = File.ReadAllText(imageAnalysisFile.FullName);
+
+                    _imageAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(analysis);
+                }
+
+                return _imageAnalysis;
+            }
+        }
 
         public string? ImageLink { get; }
     }

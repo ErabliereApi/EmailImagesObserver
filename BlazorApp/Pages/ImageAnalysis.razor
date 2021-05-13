@@ -8,6 +8,8 @@
 
 <p>Here you can manage and look at the data.</p>
 
+@{ var virtualize = true; }
+
 @if (imageInfo == null)
 {
     <p><em>Loading...</em></p>
@@ -28,26 +30,9 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var imageInfo in imageInfo)
-            {
-                var id = imageInfo.Id;
-                var title = "Delete image info " + id;
-
-                <tr id="imageinfo-@imageInfo">
-                    <td>@imageInfo.Id</td>
-                    <td>@imageInfo.Directory.CreationTime.ToShortDateString()</td>
-                    <td>@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-                    <td>
-                        <img src="@imageInfo.ImageLink" class="img-thumbnail" />
-                    </td>
-                    <td>
-                        <button @onclick="@(() => ConfirmDelete(id, title))" class="btn btn-danger">Delete</button>
-                    </td>
-                </tr>
-            }
+            <Virtualize Items="@imageInfo" Context="imageData" TItem="ImageInfo" ItemSize="182.85f" OverscanCount="8">
+                <ImageDataRow @key="imageData.Id" imageInfo="imageData" ConfirmDelete="ConfirmDelete" />
+            </Virtualize>
         </tbody>
     </table>
 
@@ -76,16 +61,29 @@ else
             </div>
         </div>
     </div>
+
+    <!-- The Modal -->
+    <div id="imageModal" class="modal">
+
+        <!-- The Close Button -->
+        <span class="close">&times;</span>
+
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
 }
 
 @code {
-    private IEnumerable<ImageInfo> imageInfo;
+    private ICollection<ImageInfo>? imageInfo;
 
     private int DeleteId;
 
     protected override async Task OnInitializedAsync()
     {
-        imageInfo = await ImageInfoService.GetImageInfo();
+        imageInfo = (ICollection<ImageInfo>)((await ImageInfoService.GetImageInfo()).ToList());
     }
 
     protected void ConfirmDelete(int id, string title)
