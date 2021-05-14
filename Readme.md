@@ -4,9 +4,13 @@
 
 Improve capabilities of an ip camera system.
 
+Compatible email services
+
+- office 365
+
 ## How it work
 
-This app connect to an imap server and listen to new message sent. When there is one and the message have an attachment, if it is an image, the images is sent to azure cognitive service and store in the app folder (AppData\EmailImagesObserver\.).
+This app connect to an imap server and listen to new message sent. When there is one and the message have an attachment, if it is an image, the images is sent to azure cognitive service and result are store in the app folder (AppData\Roaming\EmailImagesObserver\.).
 
 ## Pre-requisit
 

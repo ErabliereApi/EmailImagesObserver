@@ -1,6 +1,4 @@
-﻿@using BlazorApp.Data 
-
-<tr id="imageinfo-@imageInfo">
+﻿<tr id="imageinfo-@imageInfo">
     <td>@imageInfo.Id</td>
     <td>@imageInfo.Directory.CreationTime.ToShortDateString()</td>
     <td>@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
@@ -14,17 +12,17 @@
        <NavLink class="btn btn-primary" href="@string.Concat("imageanalysisdetails", "/", imageInfo.Id)">
            Details
        </NavLink>
-       <button @onclick="@(() => ConfirmDelete(id, title))" class="btn btn-danger">Delete</button>
+       <button @onclick="@(() => ConfirmDelete?.Invoke(id.Value, title))" class="btn btn-danger">Delete</button>
     </td>
 </tr>
 
 @code {
-    public int id => imageInfo.Id;
+    public int? id => imageInfo?.Id;
     public string title => "Delete image info " + id;
 
     [Parameter]
-    public ImageInfo imageInfo { get; set; }
+    public ImageInfo? imageInfo { get; set; }
 
     [Parameter]
-    public Action<int, string> ConfirmDelete { get; set; }
+    public Action<int, string>? ConfirmDelete { get; set; }
 } 

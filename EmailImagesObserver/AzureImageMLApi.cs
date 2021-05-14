@@ -65,10 +65,7 @@ namespace AzureComputerVision
 
                 await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
 
-                if (callBack != null)
-                {
-                    callBack();
-                }
+                callBack?.Invoke();
             } 
             catch (Exception? e) 
             {
