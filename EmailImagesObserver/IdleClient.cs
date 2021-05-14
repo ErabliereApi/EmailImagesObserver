@@ -26,6 +26,8 @@ namespace AzureComputerVision
         readonly string baseDirectory;
         private readonly LoginInfo config;
 
+        public Action? OnMessageRecieved { get; set; }
+
         public IdleClient(LoginInfo config, string baseDirectory)
         {
             this.client = new ImapClient(new ProtocolLogger(Console.OpenStandardError()));
@@ -157,7 +159,7 @@ namespace AzureComputerVision
                     }
 
                     using ComputerVisionClient client = AzureImageMLApi.Authenticate(config);
-                    await AzureImageMLApi.AnalyzeImage(client, path);
+                    await AzureImageMLApi.AnalyzeImage(client, path, OnMessageRecieved);
                 }
 
                 return;
@@ -192,7 +194,7 @@ namespace AzureComputerVision
                         await part.Content.DecodeToAsync(stream);
                     }
 
-                    await AzureImageMLApi.AnalyzeImage(client, path);
+                    await AzureImageMLApi.AnalyzeImage(client, path, OnMessageRecieved);
                 }
             }
         }
@@ -231,7 +233,7 @@ namespace AzureComputerVision
             {
                 try 
                 {
-                    if (client.Capabilities.HasFlag (ImapCapabilities.Idle)) 
+                    if (client.Capabilities.HasFlag(ImapCapabilities.Idle)) 
                     {
                         // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
                         // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
@@ -242,7 +244,7 @@ namespace AzureComputerVision
                             await client.IdleAsync(done.Token, cancel.Token);
                         } 
                         finally {
-                            done.Dispose ();
+                            done.Dispose();
                             done = null;
                         }
                     } 
@@ -329,7 +331,7 @@ namespace AzureComputerVision
         }
 
         // Note: the CountChanged event will fire when new messages arrive in the folder and/or when messages are expunged.
-        void OnCountChanged (object? sender, EventArgs e)
+        void OnCountChanged(object? sender, EventArgs e)
         {
             var folder = (ImapFolder) sender;
 
@@ -351,7 +353,7 @@ namespace AzureComputerVision
                 // Instead, cancel the `done` token and update our state so that we know new messages
                 // have arrived. We'll fetch the summaries for these new messages later...
                 messagesArrived = true;
-                done?.Cancel ();
+                done?.Cancel();
             }
         }
 
@@ -373,22 +375,22 @@ namespace AzureComputerVision
             }
         }
 
-        void OnMessageFlagsChanged (object? sender, MessageFlagsChangedEventArgs e)
+        void OnMessageFlagsChanged(object? sender, MessageFlagsChangedEventArgs e)
         {
             var folder = (ImapFolder) sender;
 
             Console.WriteLine ("{0}: flags have changed for message #{1} ({2}).", folder, e.Index, e.Flags);
         }
 
-        public void Exit ()
+        public void Exit()
         {
             cancel.Cancel ();
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
-            client.Dispose ();
-            cancel.Dispose ();
+            client.Dispose();
+            cancel.Dispose();
         }
     }
 }

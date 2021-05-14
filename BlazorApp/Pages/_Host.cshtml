@@ -31,6 +31,19 @@
         <a class="dismiss">🗙</a>
     </div>
 
+    <!-- The Image Modal -->
+    <div id="imageModal" class="modal-image">
+
+        <!-- The Close Button -->
+        <span class="closeImageModel">&times;</span>
+
+        <!-- Modal Content (The Image) -->
+        <img class="modal-image-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
@@ -46,6 +59,28 @@
 
             return true;
         };
+        window.showImageModal = (imageId) => {
+            // Get the modal
+            var modal = document.getElementById("imageModal");
+            var modalImg = document.getElementById("img01");
+            var captionText = document.getElementById("caption");
+
+            console.log("User clic on image " + imageId);
+
+            var image = document.getElementById(imageId);
+
+            modal.style.display = "block";
+            modalImg.src = image.src;
+            captionText.innerHTML = image.alt;
+
+            // Get the <span> element that closes the modal
+            var span = document.getElementsByClassName("closeImageModel")[0];
+
+            // When the user clicks on <span> (x), close the modal
+            span.onclick = function () {
+                modal.style.display = "none";
+            }
+        }
     </script>
     <script src="_framework/blazor.server.js"></script>
 </body>

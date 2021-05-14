@@ -26,7 +26,7 @@ namespace AzureComputerVision
             return client;
         }
 
-        public static async Task AnalyzeImage(ComputerVisionClient client, string path)
+        public static async Task AnalyzeImage(ComputerVisionClient client, string path, Action? callBack = null)
         {
             Console.WriteLine("----------------------------------------------------------");
             Console.WriteLine("ANALYZE IMAGE - ATTACHMENT");
@@ -64,6 +64,11 @@ namespace AzureComputerVision
                 Console.WriteLine(jsonResult);
 
                 await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
+
+                if (callBack != null)
+                {
+                    callBack();
+                }
             } 
             catch (Exception? e) 
             {

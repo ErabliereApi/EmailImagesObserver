@@ -23,6 +23,22 @@ namespace BlazorApp.Data
             });
         }
 
+        public ImageInfo? GetImageInfo(string? id)
+        {
+            if (id is null) return null;
+
+            Console.WriteLine($"Loading {id} from directory...");
+
+            var path = Path.Combine(Constant.GetBaseDirectory(), id.ToString());
+
+            if (Directory.Exists(path) == false)
+            {
+                return null;
+            }
+
+            return new ImageInfo(new DirectoryInfo(path));
+        }
+
         public void DeleteImageInfo(int id)
         {
             Directory.Delete(Path.Combine(Constant.GetBaseDirectory(), id.ToString()), true);

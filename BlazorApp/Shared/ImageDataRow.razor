@@ -8,9 +8,12 @@
     <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>
-        <img src="@imageInfo.ImageLink" class="img-thumbnail" />
+        <img id="@string.Concat("image-id-", imageInfo.Id)" src="@imageInfo.ImageLink" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo.Id)')" />
     </td>
     <td>
+       <NavLink class="btn btn-primary" href="@string.Concat("imageanalysisdetails", "/", imageInfo.Id)">
+           Details
+       </NavLink>
        <button @onclick="@(() => ConfirmDelete(id, title))" class="btn btn-danger">Delete</button>
     </td>
 </tr>

@@ -1,16 +1,17 @@
 ﻿/* Style the Image Used to Trigger the Modal */
-#myImg {
+.trigger-modal {
     border-radius: 5px;
     cursor: pointer;
     transition: 0.3s;
 }
 
-    #myImg:hover {
+    .trigger-modal:hover {
         opacity: 0.7;
+        cursor: pointer;
     }
 
 /* The Modal (background) */
-.modal {
+.modal-image {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
     z-index: 1; /* Sit on top */
@@ -25,7 +26,7 @@
 }
 
 /* Modal Content (Image) */
-.modal-content {
+.modal-image-content {
     margin: auto;
     display: block;
     width: 80%;
@@ -45,7 +46,7 @@
 }
 
 /* Add Animation - Zoom in the Modal */
-.modal-content, #caption {
+.modal-image-content, #caption {
     animation-name: zoom;
     animation-duration: 0.6s;
 }
@@ -61,7 +62,7 @@
 }
 
 /* The Close Button */
-.close {
+.closeImageModel {
     position: absolute;
     top: 15px;
     right: 35px;
@@ -71,8 +72,8 @@
     transition: 0.3s;
 }
 
-    .close:hover,
-    .close:focus {
+    .closeImageModel:hover,
+    .closeImageModel:focus {
         color: #bbb;
         text-decoration: none;
         cursor: pointer;

@@ -40,7 +40,11 @@ namespace BlazorApp
 
                 Task.Run(() =>
                 {
-                    CreateHostBuilder(args).Build().Run();
+                    var hostBuilder = CreateHostBuilder(args);
+
+                    hostBuilder.Properties.Add(typeof(IdleClient), client);
+
+                    hostBuilder.Build().Run();
                 }).Wait();
 
                 client.Exit();

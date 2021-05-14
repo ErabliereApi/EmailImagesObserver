@@ -29,7 +29,7 @@ namespace BlazorApp
                     .AddJsonOptions(o => 
                     { 
                         o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; 
-                        o.JsonSerializerOptions.MaxDepth = 64; 
+                        o.JsonSerializerOptions.MaxDepth = 64;
                     });
             services.AddOData();
             services.AddRazorPages();

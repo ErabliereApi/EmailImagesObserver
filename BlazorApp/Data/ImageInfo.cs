@@ -14,9 +14,11 @@ namespace BlazorApp.Data
         {
             Directory = directoryInfo;
 
+            Id = int.Parse(Directory.Name);
+
             CreationTime = Directory.CreationTime;
 
-            var imageFile = Directory.GetFiles().FirstOrDefault(f => f.Name.EndsWith(".jpg"));
+            var imageFile = Directory.GetFiles("*.jpg").FirstOrDefault();
 
             if (imageFile != null)
             {
@@ -24,12 +26,31 @@ namespace BlazorApp.Data
             }
         }
 
-        public int Id => int.Parse(Directory.Name);
+        public int Id { get; }
 
         [JsonIgnore]
         public DirectoryInfo Directory { get; }
 
-        public DateTimeOffset CreationTime { get; set; }
+        private string? _imageInfoAsFormatedJson;
+        [JsonIgnore]
+        public string? ImageInfoAsFormatedJson 
+        {
+            get
+            {
+                if (_imageInfoAsFormatedJson != null) return _imageInfoAsFormatedJson;
+
+                var imageAnalysisFile = Directory.GetFiles().FirstOrDefault(f => f.Name == "info.json");
+
+                if (imageAnalysisFile != null)
+                {
+                    _imageInfoAsFormatedJson = File.ReadAllText(imageAnalysisFile.FullName);
+                }
+
+                return _imageInfoAsFormatedJson;
+            }
+        }
+
+        public DateTimeOffset CreationTime { get; }
 
         private ImageAnalysis? _imageAnalysis;
         public ImageAnalysis? ImageAnalysis
@@ -38,13 +59,9 @@ namespace BlazorApp.Data
             {
                 if (_imageAnalysis != null) return _imageAnalysis;
 
-                var imageAnalysisFile = Directory.GetFiles().FirstOrDefault(f => f.Name == "info.json");
-
-                if (imageAnalysisFile != null)
+                if (ImageInfoAsFormatedJson != null)
                 {
-                    var analysis = File.ReadAllText(imageAnalysisFile.FullName);
-
-                    _imageAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(analysis);
+                    _imageAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(ImageInfoAsFormatedJson);
                 }
 
                 return _imageAnalysis;

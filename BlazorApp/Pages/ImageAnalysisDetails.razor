@@ -1,0 +1,37 @@
+﻿@page "/imageanalysisdetails/{id}"
+@inject ImageInfoService imageService
+
+<h3>Image Analysis Details</h3>
+<h6>@Id</h6>
+
+@if (ImageInfo != null)
+{
+    <div class="row">
+        <div class="col-md-6">
+            <img src="@ImageInfo.ImageLink" />
+        </div>
+        <div class="col-md-6">
+            <pre>
+            @ImageInfo.ImageInfoAsFormatedJson
+        </pre>
+        </div>
+    </div>
+}
+else
+{
+    <p>Something went wrong...</p>
+}
+
+
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    public ImageInfo? ImageInfo { get; private set; }
+
+    protected override void OnInitialized()
+    {
+        ImageInfo = imageService.GetImageInfo(Id);
+    }
+}

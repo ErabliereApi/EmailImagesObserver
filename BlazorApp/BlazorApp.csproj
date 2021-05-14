@@ -13,4 +13,6 @@
     <ProjectReference Include="..\EmailImagesObserver\AzureComputerVision.csproj" />
   </ItemGroup>
 
+  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+
 </Project>

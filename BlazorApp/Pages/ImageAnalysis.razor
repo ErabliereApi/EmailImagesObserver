@@ -1,14 +1,12 @@
 @page "/imageanalysis"
 
-@using BlazorApp.Data
 @inject ImageInfoService ImageInfoService
 @inject IJSRuntime JS
+<!-- inject IdleClient idleClient -->
 
 <h1>Image Analysis</h1>
 
 <p>Here you can manage and look at the data.</p>
-
-@{ var virtualize = true; }
 
 @if (imageInfo == null)
 {
@@ -30,7 +28,7 @@ else
             </tr>
         </thead>
         <tbody>
-            <Virtualize Items="@imageInfo" Context="imageData" TItem="ImageInfo" ItemSize="182.85f" OverscanCount="8">
+            <Virtualize Items="@imageInfo" Context="imageData" TItem="ImageInfo" ItemSize="182.85f" OverscanCount="5">
                 <ImageDataRow @key="imageData.Id" imageInfo="imageData" ConfirmDelete="ConfirmDelete" />
             </Virtualize>
         </tbody>
@@ -61,19 +59,6 @@ else
             </div>
         </div>
     </div>
-
-    <!-- The Modal -->
-    <div id="imageModal" class="modal">
-
-        <!-- The Close Button -->
-        <span class="close">&times;</span>
-
-        <!-- Modal Content (The Image) -->
-        <img class="modal-content" id="img01">
-
-        <!-- Modal Caption (Image Text) -->
-        <div id="caption"></div>
-    </div>
 }
 
 @code {
@@ -84,6 +69,24 @@ else
     protected override async Task OnInitializedAsync()
     {
         imageInfo = (ICollection<ImageInfo>)((await ImageInfoService.GetImageInfo()).ToList());
+
+        //idleClient.OnMessageRecieved = () =>
+        //{
+        //    try
+        //    {
+        //        StateHasChanged();
+        //    }
+        //    catch (Exception? e)
+        //    {
+        //        do
+        //        {
+        //            Console.Error.WriteLine(e.Message);
+        //            Console.Error.WriteLine(e.StackTrace);
+
+        //            e = e.InnerException;
+        //        } while (e != null);
+        //    }
+        //};
     }
 
     protected void ConfirmDelete(int id, string title)
