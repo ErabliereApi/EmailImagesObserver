@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
@@ -18,7 +19,7 @@ namespace AzureComputerVision
     /// analysis from azure to the image when found. Results are stored 
     /// inside the appdata folder
     /// </summary>
-    public class IdleClient : IDisposable
+    public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         readonly string host, username, password;
         readonly SecureSocketOptions sslOptions;
@@ -31,6 +32,7 @@ namespace AzureComputerVision
         readonly ImapClient client;
         readonly string baseDirectory;
         private readonly LoginInfo config;
+        private readonly ConcurrentDictionary<Guid, IObserver<ImageInfo>> observers;
 
         /// <summary>
         /// Create a IdleClient base on login config and a base directory 
@@ -54,6 +56,7 @@ namespace AzureComputerVision
             this.port = config.ImapPort;
             this.baseDirectory = baseDirectory;
             this.config = config;
+            observers = new ConcurrentDictionary<Guid, IObserver<ImageInfo>>();
         }
 
         private IMailFolder? _sentFolder;
@@ -123,9 +126,9 @@ namespace AzureComputerVision
             sentFolder.MessageExpunged -= OnMessageExpunged;
             sentFolder.CountChanged -= OnCountChanged;
 
-            await client.DisconnectAsync(true);
-
             await File.WriteAllTextAsync(messageCountPath, messagesCount.ToString());
+
+            await client.DisconnectAsync(true);
         }
 
         /// <summary>
@@ -234,7 +237,8 @@ namespace AzureComputerVision
 
             if (attachmentCount == 0) {
                 Console.WriteLine("Look for a base64 image in the BodyParts");
-                foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg") == true)) {
+                foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
+                                                               p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true)) {
                     Console.WriteLine(part);
                     Console.WriteLine(part.GetType());
 
@@ -267,7 +271,7 @@ namespace AzureComputerVision
                     }
 
                     using ComputerVisionClient client = AzureImageMLApi.Authenticate(config);
-                    await AzureImageMLApi.AnalyzeImage(client, path);
+                    await AzureImageMLApi.AnalyzeImage(client, path, observers);
                 }
 
                 return;
@@ -286,7 +290,8 @@ namespace AzureComputerVision
                 Console.WriteLine(attachment.Octets);
                 Console.WriteLine(attachment.PartSpecifier);
 
-                if (attachment.FileName.EndsWith(".jpg")) {
+                if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || 
+                    attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
                     var entity = SentFolder.GetBodyPart(item.UniqueId, attachment);
 
                     var part = (MimePart)entity;
@@ -302,7 +307,7 @@ namespace AzureComputerVision
                         await part.Content.DecodeToAsync(stream);
                     }
 
-                    await AzureImageMLApi.AnalyzeImage(client, path);
+                    await AzureImageMLApi.AnalyzeImage(client, path, observers);
                 }
             }
         }
@@ -327,7 +332,7 @@ namespace AzureComputerVision
                             done.Dispose();
                             done = null;
                         }
-                    } 
+                    }
                     else 
                     {
                         // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
@@ -429,6 +434,42 @@ namespace AzureComputerVision
 
             using var file = File.Create(path);
             file.Write(Convert.FromBase64String(sb.ToString()));
+        }
+
+        public IDisposable Subscribe(IObserver<ImageInfo> observer)
+        {
+            var type = observer.GetType();
+            var idProperty = type.GetProperty("ClientSessionId");
+            var sessionId = (Guid)idProperty.GetValue(observer);
+
+            if (observers.TryAdd(sessionId, observer))
+            {
+                Console.WriteLine($"Subscribe {sessionId} successfully");
+            }
+            else
+            {
+                Console.Error.WriteLine($"[WRN] Failed to subscribe {sessionId}");
+            }
+
+            return this;
+        }
+
+        public IDisposable Unsubscribe(IObserver<ImageInfo> observer)
+        {
+            var type = observer.GetType();
+            var idProperty = type.GetProperty("ClientSessionId");
+            var sessionId = (Guid)idProperty.GetValue(observer);
+
+            if (observers.TryRemove(sessionId, out var observer1))
+            {
+                Console.WriteLine($"Unsubscribe {sessionId} successfully");
+            }
+            else
+            {
+                Console.Error.WriteLine($"[WRN] Failed to unsubscribe {sessionId}");
+            }
+
+            return this;
         }
     }
 }

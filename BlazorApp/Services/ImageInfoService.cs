@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BlazorApp.Data
+namespace BlazorApp.Services
 {
     public class ImageInfoService
     {
@@ -18,6 +18,8 @@ namespace BlazorApp.Data
                 var directory = new DirectoryInfo(Constant.GetBaseDirectory());
 
                 IEnumerable<ImageInfo> infoArray = directory.EnumerateDirectories()
+                                                            .Where(d => d.GetFiles().Any(f => f.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                                                                              f.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)))
                                                             .Select(d => new ImageInfo(d))
                                                             .OrderByDescending(i => i.Id);
 
@@ -58,7 +60,13 @@ namespace BlazorApp.Data
 
         public void DeleteImageInfo(int id)
         {
-            Directory.Delete(Path.Combine(Constant.GetBaseDirectory(), id.ToString()), true);
+            var filesLocation = Path.Combine(Constant.GetBaseDirectory(), id.ToString());
+
+            foreach (var file in Directory.GetFiles(filesLocation))
+            {
+                File.Delete(file);
+            }
+
             Console.WriteLine("Image info id " + id + " is deleted");
         }
     }

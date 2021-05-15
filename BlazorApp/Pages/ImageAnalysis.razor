@@ -1,9 +1,5 @@
 @page "/imageanalysis"
 
-@inject ImageInfoService ImageInfoService
-@inject IJSRuntime JS
-@inject IdleClient idleClient
-
 <h1>Image Analysis</h1>
 
 <p>Here you can manage and look at the data.</p>
@@ -13,9 +9,7 @@
     <button class="btn btn-primary" @onclick="TriggerSearch">Search</button>
 </div>
 
-
-
-<table class="table">
+<table class="table table-responsive-md table-striped">
     <thead>
         <tr>
             <th>Id</th>
@@ -77,58 +71,3 @@
         </div>
     </div>
 </div>
-
-@code {
-    private IList<ImageInfo>? imageInfo;
-
-    private int DeleteId;
-
-    private int skip = 0;
-
-    protected string? SearchTerms { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        imageInfo = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
-
-        //idleClient.OnMessageRecieved = () =>
-        //{
-        //    try
-        //    {
-        //        StateHasChanged();
-        //    }
-        //    catch (Exception? e)
-        //    {
-        //        do
-        //        {
-        //            Console.Error.WriteLine(e.Message);
-        //            Console.Error.WriteLine(e.StackTrace);
-
-        //            e = e.InnerException;
-        //        } while (e != null);
-        //    }
-        //};
-    }
-
-    protected void ConfirmDelete(int id, string title)
-    {
-        DeleteId = id;
-
-        JS.InvokeAsync<bool>("confirmDelete", title);
-    }
-
-    protected async Task DeleteImageInfo()
-    {
-        await JS.InvokeAsync<bool>("hideDeleteDialog");
-
-        ImageInfoService.DeleteImageInfo(DeleteId);
-        await OnInitializedAsync();
-    }
-
-    protected async Task TriggerSearch()
-    {
-        imageInfo = null;
-
-        imageInfo = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
-    }
-}

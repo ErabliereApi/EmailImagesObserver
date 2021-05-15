@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BlazorApp.Data
+namespace AzureComputerVision
 {
     public class ImageInfo
     {
@@ -67,7 +67,9 @@ namespace BlazorApp.Data
             {
                 if (_imageLink != null) return _imageLink;
 
-                var imageFile = Directory.GetFiles("*.jpg").FirstOrDefault();
+                var imageFile = Directory.EnumerateFiles().Where(f => f.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || 
+                                                                      f.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                                         .FirstOrDefault();
 
                 if (imageFile != null)
                 {

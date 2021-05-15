@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using BlazorApp.Data;
+using BlazorApp.Services;
 using AzureComputerVision;
 using Microsoft.Extensions.FileProviders;
 using System;

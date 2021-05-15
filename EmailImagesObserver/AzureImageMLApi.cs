@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -26,7 +27,7 @@ namespace AzureComputerVision
             return client;
         }
 
-        public static async Task AnalyzeImage(ComputerVisionClient client, string path, Action? callBack = null)
+        public static async Task AnalyzeImage(ComputerVisionClient client, string path, ConcurrentDictionary<Guid, IObserver<ImageInfo>>? observer = null)
         {
             Console.WriteLine("----------------------------------------------------------");
             Console.WriteLine("ANALYZE IMAGE - ATTACHMENT");
@@ -65,7 +66,15 @@ namespace AzureComputerVision
 
                 await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
 
-                callBack?.Invoke();
+                if (observer is not null)
+                {
+                    var imageInfo = new ImageInfo(new DirectoryInfo(Path.Combine(Constant.GetBaseDirectory(), Path.GetDirectoryName(path))));
+
+                    foreach (var value in observer)
+                    {
+                        value.Value.OnNext(imageInfo);
+                    }
+                }
             } 
             catch (Exception? e) 
             {
