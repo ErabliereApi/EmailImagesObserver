@@ -9,15 +9,32 @@ namespace BlazorApp.Data
 {
     public class ImageInfoService
     {
-        public async Task<IEnumerable<ImageInfo>> GetImageInfo()
+        public Task<IEnumerable<ImageInfo>> GetImageInfo(int? take, int? skip = 0, string? search = null)
         {
-            return await Task.Run(() =>
+            return Task.Run(() =>
             {
                 Console.WriteLine("Loading data from directory...");
 
                 var directory = new DirectoryInfo(Constant.GetBaseDirectory());
 
-                var infoArray = directory.GetDirectories().Select(d => new ImageInfo(d)).OrderByDescending(i => i.Id);
+                IEnumerable<ImageInfo> infoArray = directory.EnumerateDirectories()
+                                                            .Select(d => new ImageInfo(d))
+                                                            .OrderByDescending(i => i.Id);
+
+                if (string.IsNullOrWhiteSpace(search) == false)
+                {
+                    infoArray = infoArray.Where(d => search.Split(' ').All(w => d.ImageInfoAsFormatedJson?.Contains(search, StringComparison.OrdinalIgnoreCase) == true));
+                }
+
+                if (skip.HasValue)
+                {
+                    infoArray = infoArray.Skip(skip.Value);
+                }
+
+                if (take.HasValue)
+                {
+                    infoArray = infoArray.Take(take.Value);
+                }
 
                 return infoArray;
             });

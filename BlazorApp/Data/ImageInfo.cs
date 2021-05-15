@@ -1,6 +1,5 @@
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using System;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -17,13 +16,6 @@ namespace BlazorApp.Data
             Id = int.Parse(Directory.Name);
 
             CreationTime = Directory.CreationTime;
-
-            var imageFile = Directory.GetFiles("*.jpg").FirstOrDefault();
-
-            if (imageFile != null)
-            {
-                ImageLink = $"/images/{imageFile.Directory?.Name}/{imageFile.Name}";
-            }
         }
 
         public int Id { get; }
@@ -68,6 +60,22 @@ namespace BlazorApp.Data
             }
         }
 
-        public string? ImageLink { get; }
+        private string? _imageLink;
+        public string? ImageLink
+        {
+            get
+            {
+                if (_imageLink != null) return _imageLink;
+
+                var imageFile = Directory.GetFiles("*.jpg").FirstOrDefault();
+
+                if (imageFile != null)
+                {
+                    _imageLink = $"/images/{imageFile.Directory?.Name}/{imageFile.Name}";
+                }
+
+                return _imageLink;
+            }
+        }
     }
 }

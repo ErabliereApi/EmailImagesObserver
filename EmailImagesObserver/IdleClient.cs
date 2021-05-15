@@ -13,12 +13,18 @@ using System.Text;
 
 namespace AzureComputerVision 
 {
+    /// <summary>
+    /// Imap client that listen wo the SentBox folder and apply image
+    /// analysis from azure to the image when found. Results are stored 
+    /// inside the appdata folder
+    /// </summary>
     public class IdleClient : IDisposable
     {
         readonly string host, username, password;
         readonly SecureSocketOptions sslOptions;
         readonly int port;
-        readonly List<IMessageSummary> messages;
+        //readonly List<IMessageSummary> messages;
+        int messagesCount;
         readonly CancellationTokenSource cancel;
         CancellationTokenSource? done;
         bool messagesArrived;
@@ -26,12 +32,20 @@ namespace AzureComputerVision
         readonly string baseDirectory;
         private readonly LoginInfo config;
 
-        public Action? OnMessageRecieved { get; set; }
-
+        /// <summary>
+        /// Create a IdleClient base on login config and a base directory 
+        /// for store data
+        /// </summary>
+        /// <param name="config">Login info to the email and azure congitive service</param>
+        /// <param name="baseDirectory">The base path to store the data</param>
         public IdleClient(LoginInfo config, string baseDirectory)
         {
+            if (config.EmailLogin == null) throw new NotImplementedException("config.EmailLogin");
+            if (config.EmailPassword == null) throw new NotImplementedException("config.EmailPassword");
+            if (config.ImapServer == null) throw new NotImplementedException("config.ImapServer");
+
             this.client = new ImapClient(new ProtocolLogger(Console.OpenStandardError()));
-            this.messages = new List<IMessageSummary>();
+            //this.messages = new List<IMessageSummary>();
             this.cancel = new CancellationTokenSource();
             this.sslOptions = SecureSocketOptions.SslOnConnect;
             this.username = config.EmailLogin;
@@ -43,6 +57,10 @@ namespace AzureComputerVision
         }
 
         private IMailFolder? _sentFolder;
+
+        /// <summary>
+        /// The SentFolder of the email account
+        /// </summary>
         public IMailFolder SentFolder
         {
             get {
@@ -57,6 +75,95 @@ namespace AzureComputerVision
 
                 return _sentFolder;
             }
+        }
+
+        /// <summary>
+        /// Run the client.
+        /// </summary>
+        public async Task RunAsync()
+        {
+            var messageCountPath = Path.Combine(baseDirectory, "messageCount.txt");
+
+            if (File.Exists(messageCountPath))
+            {
+                messagesCount = int.Parse(await File.ReadAllTextAsync(messageCountPath));
+            }
+
+            // connect to the IMAP server and get our initial list of messages
+            try
+            {
+                await ReconnectAsync();
+                await FetchMessageSummariesAsync(print: false, analyseImage: messageId => Directory.Exists(Path.Combine(Constant.GetBaseDirectory(), messageId)) == false);
+            }
+            catch (OperationCanceledException)
+            {
+                await client.DisconnectAsync(true);
+                return;
+            }
+
+            // Note: We capture client.Inbox here because cancelling IdleAsync() *may* require
+            // disconnecting the IMAP client connection, and, if it does, the `client.Inbox`
+            // property will no longer be accessible which means we won't be able to disconnect
+            // our event handlers.
+            var sentFolder = SentFolder;
+
+            // keep track of changes to the number of messages in the folder (this is how we'll tell if new messages have arrived).
+            sentFolder.CountChanged += OnCountChanged;
+
+            // keep track of messages being expunged so that when the CountChanged event fires, we can tell if it's
+            // because new messages have arrived vs messages being removed (or some combination of the two).
+            sentFolder.MessageExpunged += OnMessageExpunged;
+
+            // keep track of flag changes
+            sentFolder.MessageFlagsChanged += OnMessageFlagsChanged;
+
+            await IdleAsync();
+
+            sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
+            sentFolder.MessageExpunged -= OnMessageExpunged;
+            sentFolder.CountChanged -= OnCountChanged;
+
+            await client.DisconnectAsync(true);
+
+            await File.WriteAllTextAsync(messageCountPath, messagesCount.ToString());
+        }
+
+        /// <summary>
+        /// Log the call in stdout and communicate a request for cancellation
+        /// </summary>
+        public void Exit()
+        {
+            Console.WriteLine("IdleClient.Exit");
+            cancel.Cancel();
+        }
+
+        /// <inheritdoc cref="IDisposable.Dispose"/>
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            client.Dispose();
+            cancel.Dispose();
+        }
+
+        async Task IdleAsync()
+        {
+            do
+            {
+                try
+                {
+                    await WaitForNewMessagesAsync();
+
+                    if (messagesArrived)
+                    {
+                        await FetchMessageSummariesAsync(print: true, analyseImage: messageId => true);
+                        messagesArrived = false;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            } while (!cancel.IsCancellationRequested);
         }
 
         async Task ReconnectAsync()
@@ -82,7 +189,7 @@ namespace AzureComputerVision
                 try 
                 {
                     // fetch summary information for messages that we don't already have
-                    int startIndex = messages.Count;
+                    int startIndex = messagesCount;
 
                     fetched = SentFolder.Fetch(startIndex, -1, MessageSummaryItems.Full | 
                                                                MessageSummaryItems.UniqueId | 
@@ -105,7 +212,8 @@ namespace AzureComputerVision
             {
                 if (print)
                     Console.WriteLine ("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
-                messages.Add(message);
+                //messages.Add(message);
+                messagesCount++;
 
                 if (analyseImage(message.UniqueId.ToString()))
                     await MaybeAnalyseImages(message, message.Attachments);
@@ -159,7 +267,7 @@ namespace AzureComputerVision
                     }
 
                     using ComputerVisionClient client = AzureImageMLApi.Authenticate(config);
-                    await AzureImageMLApi.AnalyzeImage(client, path, OnMessageRecieved);
+                    await AzureImageMLApi.AnalyzeImage(client, path);
                 }
 
                 return;
@@ -194,37 +302,9 @@ namespace AzureComputerVision
                         await part.Content.DecodeToAsync(stream);
                     }
 
-                    await AzureImageMLApi.AnalyzeImage(client, path, OnMessageRecieved);
+                    await AzureImageMLApi.AnalyzeImage(client, path);
                 }
             }
-        }
-
-        private static void ParseAndSaveImage(string imageString, string path)
-        {
-            var sb = new StringBuilder();
-
-            var lines = imageString.Split('\n');
-
-            var parseImage = false;
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                if (string.IsNullOrWhiteSpace(lines[i]))
-                {
-                    parseImage = true;
-                }
-
-                if (parseImage)
-                {
-                    if (string.IsNullOrWhiteSpace(lines[i]) == false)
-                    {
-                        sb.Append(lines[i]);
-                    }
-                }
-            }
-
-            using var file = File.Create(path);
-            file.Write(Convert.FromBase64String(sb.ToString()));
         }
 
         async Task WaitForNewMessagesAsync()
@@ -270,66 +350,6 @@ namespace AzureComputerVision
             } while (true);
         }
 
-        async Task IdleAsync ()
-        {
-            do 
-            {
-                try 
-                {
-                    await WaitForNewMessagesAsync();
-
-                    if (messagesArrived) 
-                    {
-                        await FetchMessageSummariesAsync(print: true, analyseImage: messageId => true);
-                        messagesArrived = false;
-                    }
-                } 
-                catch (OperationCanceledException) 
-                {
-                    break;
-                }
-            } while (!cancel.IsCancellationRequested);
-        }
-
-        public async Task RunAsync()
-        {
-            // connect to the IMAP server and get our initial list of messages
-            try 
-            {
-                await ReconnectAsync();
-                await FetchMessageSummariesAsync(print: false, analyseImage: messageId => Directory.Exists(Path.Combine(Constant.GetBaseDirectory(), messageId)) == false);
-            } 
-            catch (OperationCanceledException) 
-            {
-                await client.DisconnectAsync(true);
-                return;
-            }
-
-            // Note: We capture client.Inbox here because cancelling IdleAsync() *may* require
-            // disconnecting the IMAP client connection, and, if it does, the `client.Inbox`
-            // property will no longer be accessible which means we won't be able to disconnect
-            // our event handlers.
-            var sentFolder = SentFolder;
-
-            // keep track of changes to the number of messages in the folder (this is how we'll tell if new messages have arrived).
-            sentFolder.CountChanged += OnCountChanged;
-
-            // keep track of messages being expunged so that when the CountChanged event fires, we can tell if it's
-            // because new messages have arrived vs messages being removed (or some combination of the two).
-            sentFolder.MessageExpunged += OnMessageExpunged;
-
-            // keep track of flag changes
-            sentFolder.MessageFlagsChanged += OnMessageFlagsChanged;
-
-            await IdleAsync();
-
-            sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
-            sentFolder.MessageExpunged -= OnMessageExpunged;
-            sentFolder.CountChanged -= OnCountChanged;
-
-            await client.DisconnectAsync(true);
-        }
-
         // Note: the CountChanged event will fire when new messages arrive in the folder and/or when messages are expunged.
         void OnCountChanged(object? sender, EventArgs e)
         {
@@ -338,8 +358,8 @@ namespace AzureComputerVision
             // Note: because we are keeping track of the MessageExpunged event and updating our
             // 'messages' list, we know that if we get a CountChanged event and folder.Count is
             // larger than messages.Count, then it means that new messages have arrived.
-            if (folder.Count > messages.Count) {
-                int arrived = folder.Count - messages.Count;
+            if (folder.Count > messagesCount) {
+                int arrived = folder.Count - messagesCount;
 
                 if (arrived > 1)
                     Console.WriteLine("\t{0} new messages have arrived.", arrived);
@@ -361,15 +381,16 @@ namespace AzureComputerVision
         {
             var folder = (ImapFolder) sender;
 
-            if (e.Index < messages.Count) {
-                var message = messages[e.Index];
+            if (e.Index < messagesCount) {
+                //var message = messages[e.Index];
 
-                Console.WriteLine ("{0}: message #{1} has been expunged: {2}", folder, e.Index, message.Envelope.Subject);
+                //Console.WriteLine ("{0}: message #{1} has been expunged: {2}", folder, e.Index, message.Envelope.Subject);
 
                 // Note: If you are keeping a local cache of message information
                 // (e.g. MessageSummary data) for the folder, then you'll need
                 // to remove the message at e.Index.
-                messages.RemoveAt(e.Index);
+                //messages.RemoveAt(e.Index);
+                messagesCount--;
             } else {
                 Console.WriteLine("{0}: message #{1} has been expunged.", folder, e.Index);
             }
@@ -382,15 +403,32 @@ namespace AzureComputerVision
             Console.WriteLine ("{0}: flags have changed for message #{1} ({2}).", folder, e.Index, e.Flags);
         }
 
-        public void Exit()
+        private static void ParseAndSaveImage(string imageString, string path)
         {
-            cancel.Cancel ();
-        }
+            var sb = new StringBuilder();
 
-        public void Dispose()
-        {
-            client.Dispose();
-            cancel.Dispose();
+            var lines = imageString.Split('\n');
+
+            var parseImage = false;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i]))
+                {
+                    parseImage = true;
+                }
+
+                if (parseImage)
+                {
+                    if (string.IsNullOrWhiteSpace(lines[i]) == false)
+                    {
+                        sb.Append(lines[i]);
+                    }
+                }
+            }
+
+            using var file = File.Create(path);
+            file.Write(Convert.FromBase64String(sb.ToString()));
         }
     }
 }

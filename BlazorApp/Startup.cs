@@ -7,8 +7,9 @@ using Microsoft.Extensions.Hosting;
 using BlazorApp.Data;
 using AzureComputerVision;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.AspNet.OData.Extensions;
-using System.Text.Json.Serialization;
+using System;
+using Microsoft.AspNetCore.DataProtection;
+using System.IO;
 
 namespace BlazorApp
 {
@@ -25,16 +26,17 @@ namespace BlazorApp
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers()
-                    .AddJsonOptions(o => 
-                    { 
-                        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; 
-                        o.JsonSerializerOptions.MaxDepth = 64;
-                    });
-            services.AddOData();
+            /// Blazor app
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<ImageInfoService>();
+
+            /// IdleClient
+            services.AddDataProtection()
+                    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Constant.AppName)))
+                    .SetApplicationName(Constant.AppName);
+            services.AddSingleton<LocalDataProtection>();
+            services.AddSingleton(sp => new IdleClient(sp.GetRequiredService<LocalDataProtection>().GetLoginInfo(), Constant.GetBaseDirectory()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,10 +66,6 @@ namespace BlazorApp
             {
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
-
-                endpoints.EnableDependencyInjection();
-                endpoints.Select().Expand().Filter().Count().MaxTop(100).OrderBy();
-                endpoints.MapControllers();
             });
         }
     }
