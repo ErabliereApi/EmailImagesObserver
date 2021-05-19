@@ -43,6 +43,19 @@ namespace BlazorApp.Pages
             idleClient.Subscribe(this);
         }
 
+        protected async Task LoadNext()
+        {
+            skip += 15;
+
+            var nextResults = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
+
+            var newList = imageInfo.ToList();
+
+            newList.AddRange(nextResults);
+
+            imageInfo = newList;
+        }
+
         protected void ConfirmDelete(int id, string title)
         {
             DeleteId = id;
@@ -61,6 +74,8 @@ namespace BlazorApp.Pages
         protected async Task TriggerSearch()
         {
             imageInfo = null;
+
+            skip = 0;
 
             imageInfo = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
         }

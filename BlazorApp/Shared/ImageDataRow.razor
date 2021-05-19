@@ -1,6 +1,6 @@
-﻿<tr id="imageinfo-@imageInfo">
+﻿<tr id="imageinfo-@imageInfo.Id">
     <td>@imageInfo.Id</td>
-    <td>@imageInfo.Directory.CreationTime.ToShortDateString()</td>
+    <td>@FormatDateTime(imageInfo.Directory.CreationTime)</td>
     <td>@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
@@ -25,4 +25,16 @@
 
     [Parameter]
     public Action<int, string>? ConfirmDelete { get; set; }
+
+    public string FormatDateTime(DateTime date)
+    {
+        var now = DateTime.Now;
+
+        if (date < now - TimeSpan.FromHours(24))
+        {
+            return date.ToShortDateString();
+        }
+
+        return date.ToShortTimeString();
+    }
 } 

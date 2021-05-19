@@ -11,9 +11,9 @@
             <img src="@ImageInfo.ImageLink" class="img-fluid"/>
         </div>
         <div class="col-md-6">
-            <pre>
-            @ImageInfo.ImageInfoAsFormatedJson
-        </pre>
+            <pre class="text">
+                @ImageInfo.ImageInfoAsFormatedJson
+            </pre>
         </div>
     </div>
 }
@@ -21,8 +21,6 @@ else
 {
     <p>Something went wrong...</p>
 }
-
-
 
 @code {
     [Parameter]

@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using AzureComputerVision;
 @using System.IO; 
+@inject IdleClient idleClient
 
 <h1>Email Images Observer!</h1>
 
@@ -14,8 +15,18 @@ Welcome to email image observer app. Here you can watch info grab be the backgro
     </div>
 </div>
 
+<div class="card" style="width: 18rem;">
+    <div class="card-body">
+        <h5 class="card-title">Email Sent</h5>
+        <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessagesCount messages</h6>
+        <p class="card-text">@imageCount images</p>
+    </div>
+</div>
+
 @code 
 {
+	public int imageCount { get; set; } = 0;
+
     protected string GetSpaceUsed()
     {
         var baseDirectory = new DirectoryInfo(Constant.GetBaseDirectory());
@@ -32,6 +43,10 @@ Welcome to email image observer app. Here you can watch info grab be the backgro
             foreach (var file in directory.EnumerateFiles())
             {
                 size += file.Length;
+				
+				if (file.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
+					imageCount++;
+				}
             }
         }
 

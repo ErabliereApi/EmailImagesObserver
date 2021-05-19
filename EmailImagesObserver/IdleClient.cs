@@ -79,6 +79,8 @@ namespace AzureComputerVision
                 return _sentFolder;
             }
         }
+		
+		public int MessagesCount => messagesCount;
 
         /// <summary>
         /// Run the client.
@@ -122,12 +124,15 @@ namespace AzureComputerVision
 
             await IdleAsync();
 
+            Console.WriteLine("Remove events");
             sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
             sentFolder.MessageExpunged -= OnMessageExpunged;
             sentFolder.CountChanged -= OnCountChanged;
 
+            Console.WriteLine("Saving the count...");
             await File.WriteAllTextAsync(messageCountPath, messagesCount.ToString());
 
+            Console.WriteLine("Disconnect client");
             await client.DisconnectAsync(true);
         }
 
@@ -137,12 +142,20 @@ namespace AzureComputerVision
         public void Exit()
         {
             Console.WriteLine("IdleClient.Exit");
-            cancel.Cancel();
+            if (cancel.IsCancellationRequested == false)
+            {
+                cancel.Cancel();
+            }
+            else
+            {
+                Console.WriteLine("A cancellation request has already been sent. Nothing to do");
+            }
         }
 
         /// <inheritdoc cref="IDisposable.Dispose"/>
         public void Dispose()
         {
+            Console.WriteLine("Disposing the IdleClient");
             GC.SuppressFinalize(this);
             client.Dispose();
             cancel.Dispose();

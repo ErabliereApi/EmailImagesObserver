@@ -10,6 +10,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using Microsoft.AspNetCore.DataProtection;
 using System.IO;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace BlazorApp
 {
@@ -30,6 +31,9 @@ namespace BlazorApp
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<ImageInfoService>();
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                    .AddCookie();
 
             /// IdleClient
             services.AddDataProtection()
@@ -61,6 +65,10 @@ namespace BlazorApp
             });
 
             app.UseRouting();
+
+            app.UseAuthentication();
+
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
