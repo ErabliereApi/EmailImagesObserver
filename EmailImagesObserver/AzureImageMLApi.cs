@@ -13,7 +13,7 @@ namespace AzureComputerVision
 {
     public class AzureImageMLApi
     {
-        static readonly CountByIntervalAwaitableConstraint minuteTimeConstraint = new(50, TimeSpan.FromMinutes(1));
+        static readonly CountByIntervalAwaitableConstraint minuteTimeConstraint = new(20, TimeSpan.FromMinutes(1));
         static readonly CountByIntervalAwaitableConstraint daysTimeConstraint = new(5000, TimeSpan.FromDays(1));
         static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
 
