@@ -21,7 +21,7 @@
     public string title => "Delete image info " + id;
 
     [Parameter]
-    public ImageInfo? imageInfo { get; set; }
+    public ImageInfo imageInfo { get; set; } = new NullImageInfo();
 
     [Parameter]
     public Action<int, string>? ConfirmDelete { get; set; }

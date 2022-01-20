@@ -1,41 +1,37 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ComposableAsync;
 using RateLimiter;
 
-namespace AzureComputerVision
+namespace AzureComputerVision;
+
+public class AzureImageMLApi
 {
-    public class AzureImageMLApi
+    static readonly CountByIntervalAwaitableConstraint minuteTimeConstraint = new(20, TimeSpan.FromMinutes(1));
+    static readonly CountByIntervalAwaitableConstraint daysTimeConstraint = new(5000, TimeSpan.FromDays(1));
+    static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
+
+    public static ComputerVisionClient Authenticate(LoginInfo config)
     {
-        static readonly CountByIntervalAwaitableConstraint minuteTimeConstraint = new(20, TimeSpan.FromMinutes(1));
-        static readonly CountByIntervalAwaitableConstraint daysTimeConstraint = new(5000, TimeSpan.FromDays(1));
-        static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
-
-        public static ComputerVisionClient Authenticate(LoginInfo config)
+        ComputerVisionClient client = new(new ApiKeyServiceClientCredentials(config.AzureVisionSubscriptionKey))
         {
-            ComputerVisionClient client = new (new ApiKeyServiceClientCredentials(config.AzureVisionSubscriptionKey))
-            {
-                Endpoint = config.AzureVisionEndpoint
-            };
+            Endpoint = config.AzureVisionEndpoint
+        };
 
-            return client;
-        }
+        return client;
+    }
 
-        public static async Task AnalyzeImage(ComputerVisionClient client, string path, ConcurrentDictionary<Guid, IObserver<ImageInfo>>? observer = null)
-        {
-            Console.WriteLine("----------------------------------------------------------");
-            Console.WriteLine("ANALYZE IMAGE - ATTACHMENT");
-            Console.WriteLine(path);
-            Console.WriteLine();
+    public static async Task AnalyzeImage(ComputerVisionClient client, string path, ConcurrentDictionary<Guid, IObserver<ImageInfo>>? observer = null)
+    {
+        Console.WriteLine("----------------------------------------------------------");
+        Console.WriteLine("ANALYZE IMAGE - ATTACHMENT");
+        Console.WriteLine(path);
+        Console.WriteLine();
 
-            // Creating a list that defines the features to be extracted from the image. 
-            var features = new List<VisualFeatureTypes?>
+        // Creating a list that defines the features to be extracted from the image. 
+        var features = new List<VisualFeatureTypes?>
             {
                 VisualFeatureTypes.Categories,
                 VisualFeatureTypes.Description,
@@ -48,43 +44,43 @@ namespace AzureComputerVision
                 VisualFeatureTypes.Objects,
             };
 
-            try
+        try
+        {
+            await azureFreeTimeConstraint;
+
+            using var stream = File.OpenRead(path);
+
+            // Analyze the local image.
+            ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
+
+            var jsonResult = JsonSerializer.Serialize(results, new JsonSerializerOptions
             {
-                await azureFreeTimeConstraint;
+                WriteIndented = true
+            });
 
-                using var stream = File.OpenRead(path);
+            Console.WriteLine(jsonResult);
 
-                // Analyze the local image.
-                ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
+            await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
 
-                var jsonResult = JsonSerializer.Serialize(results, new JsonSerializerOptions
+            if (observer is not null)
+            {
+                var imageInfo = new ImageInfo(new DirectoryInfo(Path.Combine(Constant.GetBaseDirectory(), Path.GetDirectoryName(path))));
+
+                foreach (var value in observer)
                 {
-                    WriteIndented = true
-                });
-
-                Console.WriteLine(jsonResult);
-
-                await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(path), "info.json"), jsonResult);
-
-                if (observer is not null)
-                {
-                    var imageInfo = new ImageInfo(new DirectoryInfo(Path.Combine(Constant.GetBaseDirectory(), Path.GetDirectoryName(path))));
-
-                    foreach (var value in observer)
-                    {
-                        value.Value.OnNext(imageInfo);
-                    }
+                    value.Value.OnNext(imageInfo);
                 }
-            } 
-            catch (Exception? e) 
-            {
-                do {
-                    Console.Error.WriteLine(e.Message);
-                    Console.Error.WriteLine(e.StackTrace);
-
-                    e = e.InnerException;
-                } while (e != null);
             }
+        }
+        catch (Exception? e)
+        {
+            do
+            {
+                Console.Error.WriteLine(e.Message);
+                Console.Error.WriteLine(e.StackTrace);
+
+                e = e.InnerException;
+            } while (e != null);
         }
     }
 }

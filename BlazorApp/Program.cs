@@ -1,48 +1,43 @@
-using System;
 using AzureComputerVision;
 using BlazorApp.HostDecorator;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
-namespace BlazorApp
+namespace BlazorApp;
+
+class Program
 {
-    class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
+        try
         {
-            try
-            {
-                var baseDirectory = Constant.GetBaseDirectory();
+            var baseDirectory = Constant.GetBaseDirectory();
 
-                Console.WriteLine($"Base directory : {baseDirectory}");
+            Console.WriteLine($"Base directory : {baseDirectory}");
 
-                var host = CreateHostBuilder(args).Build().WithIdleClient(); 
+            var host = CreateHostBuilder(args).Build().WithIdleClient();
 
-                host.Run();
-            }
-            catch (Exception? e)
-            {
-                LogException(e);
-            }
+            host.Run();
         }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-
-        public static void LogException(Exception exception)
+        catch (Exception? e)
         {
-            do
-            {
-                Console.Error.WriteLine(exception.Message);
-                Console.Error.WriteLine(exception.StackTrace);
-
-                exception = exception.InnerException;
-            } while (exception != null);
+            LogException(e);
         }
+    }
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+            });
+
+    public static void LogException(Exception? exception)
+    {
+        while (exception != null)
+        {
+            Console.Error.WriteLine(exception.Message);
+            Console.Error.WriteLine(exception.StackTrace);
+
+            exception = exception.InnerException;
+        } 
     }
 }
