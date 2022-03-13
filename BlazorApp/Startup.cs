@@ -6,6 +6,12 @@ using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using MailKit.Net.Imap;
 using MailKit;
+using BlazorApp.Extension;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Web.UI;
+using Microsoft.Extensions.Logging;
 
 namespace BlazorApp;
 
@@ -22,13 +28,28 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        /// Blazor app
-        services.AddRazorPages();
+        services.AddForwardedHeadersIfEnable(Configuration);
+
+/// Blazor app
+        var mvcBuilder = services.AddRazorPages();
+        if (AddAuthentificationExtension.IsAzureADAuth(Configuration))
+        {
+            mvcBuilder.AddMvcOptions(options =>
+            {
+                var policy = new AuthorizationPolicyBuilder()
+                              .RequireAuthenticatedUser()
+                              .Build();
+                options.Filters.Add(new AuthorizeFilter(policy));
+            }).AddMicrosoftIdentityUI();
+        }
         services.AddServerSideBlazor();
         services.AddScoped<ImageInfoService>();
 
-        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie();
+        services.AddTeamMemberVelocityAutorisation(Configuration);
+
+        services.AddDistributedCaching(Configuration);
+
+        services.AddSession();
 
         /// IdleClient
         services.AddDataProtection()
@@ -78,7 +99,7 @@ public class Startup
         });
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
     {
         if (Configuration["Database:Provider"] == "Sql")
 {
@@ -94,14 +115,26 @@ public class Startup
         else
         {
             app.UseExceptionHandler("/Error");
-        }
+}
+
+        app.UseForwardedHeadersRulesIfEnabled(logger, Configuration);
+
+        app.Use(async (context, next) =>
+        {
+            context.Response.Headers.Add("X-Frame-Options", ("X-FRAME-OPTIONS") ?? "DENY");
+            context.Response.Headers.Add("X-Content-Type-Options", ("X-Content-Type-Options") ?? "nosniff");
+            await next();
+        });
+
+        app.UseHttpsRedirection();
 
         app.UseStaticFiles();
 
         app.UseRouting();
 
-        app.UseAuthentication();
+        app.UseSession();
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>

@@ -1,0 +1,42 @@
+name: EmailImagesObserver-Image
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - .github/**
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - .github/**
+  workflow_dispatch:
+
+env:
+  REGISTRY_HOSTNAME: erabliereapi
+  IMAGE_NAME: emailimagesobserver
+  IMAGE_TAG: v2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # Login into dockerhub
+      - name: Login into dockerhub
+        run: echo ${{ secrets.registryPassword }} | docker login -u ${{ secrets.registryUsername }} --password-stdin
+
+      # Build the image
+      - name: Docker build
+        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+        
+      # Tag the images
+      - name: Docker tag
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: docker tag $IMAGE_NAME:$IMAGE_TAG $REGISTRY_HOSTNAME/$IMAGE_NAME:$IMAGE_TAG
+
+      # Push the image
+      - name: Docker push
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: docker push $REGISTRY_HOSTNAME/$IMAGE_NAME:$IMAGE_TAG

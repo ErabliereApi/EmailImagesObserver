@@ -28,14 +28,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly BlazorDbContext _context;
     private readonly AzureImageMLApi _azureImageML;
     private readonly IConfiguration _config;
-    private Guid _emailDbID;
+    private EmailStates? _emailStateDb;
 
     /// <summary>
     /// Create a IdleClient base on login config and a base directory 
     /// for store data
     /// </summary>
-    /// <param name="_loginInfo">Login info to the email and azure congitive service</param>
-    /// <param name="baseDirectory">The base path to store the data</param>
     public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config, ImapClient imapClient)
     {
         _loginInfo = loginInfo.Value;
@@ -53,6 +51,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     }
 
     private IMailFolder? _sentFolder;
+    private DateTime _startDate;
 
     /// <summary>
     /// The SentFolder of the email account
@@ -81,18 +80,23 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// <summary>
     /// Run the client.
     /// </summary>
-    public async Task RunAsync()
+    public async Task RunAsync(CancellationToken token)
     {
         // connect to the IMAP server and get our initial list of messages
         try
         {
             await ReconnectAsync();
-            await FetchMessageSummariesAsync(print: false, analyseImage: messageId => true, CancellationToken.None);
+            await FetchMessageSummariesAsync(print: false, analyseImage: message => message.InternalDate >= _config.GetValue<DateTimeOffset>("StartDate"), token);
         }
         catch (OperationCanceledException)
         {
             await _imapClient.DisconnectAsync(true);
             return;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            throw;
         }
 
         // Note: We capture client.Inbox here because cancelling IdleAsync() *may* require
@@ -158,7 +162,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (messagesArrived)
                 {
-                    await FetchMessageSummariesAsync(print: true, analyseImage: messageId => true, CancellationToken.None);
+                    await FetchMessageSummariesAsync(print: true, analyseImage: message => message.InternalDate > _config.GetValue<DateTimeOffset>("StartDate"), CancellationToken.None);
                     messagesArrived = false;
                 }
             }
@@ -184,7 +188,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     /// <param name="print">Print in console few information on new message fetched</param>
     /// <param name="analyseImage">A function that recieve the message uniqueId and indicate if the message need to be analysed</param>
-    async Task FetchMessageSummariesAsync(bool print, Func<string, bool> analyseImage, CancellationToken token)
+    async Task FetchMessageSummariesAsync(bool print, Func<IMessageSummary, bool> analyseImage, CancellationToken token)
     {
         IList<IMessageSummary>? fetched;
         do
@@ -192,29 +196,28 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             try
             {
                 // fetch summary information for messages that we don't already have
-                var state = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync();
+                _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync();
 
-                int max = -1;
-                int min = state?.MessagesCount ?? 0;
+                _startDate = _config.GetValue<DateTimeOffset>("StartDate").DateTime;
 
-                if (state == null)
+                if (_emailStateDb == null)
                 {
-                    state = new EmailStates
+                    _emailStateDb = new EmailStates
                     {
                         Email = _loginInfo.EmailLogin,
                         Id = Guid.NewGuid()
                     };
 
-                    var entry = await _context.EmailStates.AddAsync(state, token);
+                    var entry = await _context.EmailStates.AddAsync(_emailStateDb, token);
 
-                    _emailDbID = state.Id;
+                    await _context.SaveChangesAsync(token);
 
-                    state = entry.Entity;
-
-                    min = SentFolder.Count - (_config.GetValue<int?>("InitialLoadQuantity") ?? 25);
+                    _emailStateDb = entry.Entity;
                 }
 
-                fetched = SentFolder.Fetch(min, max, MessageSummaryItems.Full |
+                var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate), token);
+
+                fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
                                                      MessageSummaryItems.UniqueId |
                                                      MessageSummaryItems.BodyStructure, _tokenSource.Token);
                 break;
@@ -236,18 +239,16 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             if (print)
                 Console.WriteLine("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
 
-            var state = await _context.EmailStates.FindAsync(new object?[] { _emailDbID }, token);
-
-            if (state != null)
+            if (_emailStateDb != null)
             {
-                state.MessagesCount++;
+                _emailStateDb.MessagesCount++;
 
-                _context.Update(state);
+                _context.Update(_emailStateDb);
 
                 await _context.SaveChangesAsync(token);
             }
 
-            if (analyseImage(message.UniqueId.ToString()))
+            if (analyseImage(message))
                 await MaybeAnalyseImagesAsync(message, message.Attachments, token);
         }
     }
@@ -282,14 +283,23 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 // note: it's possible for this to be null, but most will specify a filename
                 var fileName = part.FileName;
 
-                var entity = SentFolder.GetBodyPart(item.UniqueId, part);
+                var entity = await SentFolder.GetBodyPartAsync(item.UniqueId, part, token);
 
                 var imageInfo = new ImageInfo
                 {
                     Name = fileName,
                     DateAjout = DateTimeOffset.Now,
-                    DateEmail = item.Date
+                    DateEmail = item.InternalDate ?? item.Date
                 };
+
+                if (item.InternalDate.HasValue)
+                {
+                    _startDate = item.InternalDate.Value.DateTime;
+                }
+                else
+                {
+                    _startDate = item.Date.DateTime;
+                }
 
                 using (var stream = new MemoryStream())
                 {
@@ -324,14 +334,30 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                 attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
             {
-                var entity = SentFolder.GetBodyPart(item.UniqueId, attachment);
+                var entity = await SentFolder.GetBodyPartAsync(item.UniqueId, attachment);
 
                 var part = (MimePart)entity;
 
                 string? fileName = part.FileName;
 
                 using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
-                var imageInfo = new ImageInfo();
+
+                var imageInfo = new ImageInfo
+                {
+                    Name = fileName,
+                    DateAjout = DateTimeOffset.Now,
+                    DateEmail = item.InternalDate ?? item.Date
+                };
+
+                if (item.InternalDate.HasValue)
+                {
+                    _startDate = item.InternalDate.Value.DateTime;
+                }
+                else
+                {
+                    _startDate = item.Date.DateTime;
+                }
+
                 using (var stream = new MemoryStream())
                 {
                     await part.Content.DecodeToAsync(stream);
@@ -339,6 +365,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await stream.FlushAsync(token);
 
                     imageInfo.Images = stream.ToArray();
+
+                    _ = _context.ImagesInfo.AddAsync(imageInfo, token);
+
+                    if (_emailStateDb != null)
+                    {
+                        _emailStateDb.Size += imageInfo.Images?.Length ?? 0;
+
+                        _context.Update(_emailStateDb);
+                    }
+
+                    await _context.SaveChangesAsync(token);
                 }
 
                 await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
@@ -391,15 +428,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     }
 
     // Note: the CountChanged event will fire when new messages arrive in the folder and/or when messages are expunged.
-    async void OnCountChanged(object? sender, EventArgs e)
+    void OnCountChanged(object? sender, EventArgs e)
     {
         var folder = sender as ImapFolder;
 
-        var emailState = await _context.EmailStates.FindAsync(_emailDbID);
-
-        if (folder != null && folder.Count > emailState?.MessagesCount)
+        if (folder != null && folder.Count > _emailStateDb?.MessagesCount)
         {
-            int arrived = folder.Count - emailState.MessagesCount;
+            int arrived = folder.Count - _emailStateDb.MessagesCount;
 
             if (arrived > 1)
                 Console.WriteLine("\t{0} new messages have arrived.", arrived);
@@ -416,11 +451,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var folder = sender as ImapFolder;
 
-        var emailStates = await _context.EmailStates.FindAsync(_emailDbID);
-
-        if (e.Index < emailStates?.MessagesCount)
+        if (e.Index < _emailStateDb?.MessagesCount)
         {
-            emailStates.MessagesCount -= 1;
+            _emailStateDb.MessagesCount -= 1;
+
+            _context.Update(_emailStateDb);
 
             await _context.SaveChangesAsync();
         }
@@ -464,6 +499,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         imageInfo.Images = Convert.FromBase64String(sb.ToString());
 
         _ = _context.ImagesInfo.AddAsync(imageInfo, token);
+
+        if (_emailStateDb != null)
+        {
+            _emailStateDb.Size += imageInfo.Images?.Length ?? 0;
+
+            _context.Update(_emailStateDb);
+        }
 
         await _context.SaveChangesAsync(token);
     }

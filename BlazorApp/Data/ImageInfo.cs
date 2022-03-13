@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace BlazorApp.Data;
 
 [Index(nameof(DateAjout), IsUnique = false, Name = "Index_DateAjout")]
-public class ImageInfo
+public class ImageInfo : IComparable<ImageInfo>
 {
     public long Id { get; set; }
 
@@ -41,6 +41,36 @@ public class ImageInfo
 
             return _imagesAnalysis;
         }
+    }
+
+    public int CompareTo(ImageInfo? other)
+    {
+        if (DateEmail == null)
+        {
+            return other?.DateEmail == null ? 0 : -1;
+        }
+
+        if (other == null)
+        {
+            return 1;
+        }
+
+        return DateEmail.Value.CompareTo(other.DateEmail.GetValueOrDefault(default)) * -1;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is ImageInfo img && img.Id == Id;
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
+    }
+
+    public override string ToString()
+    {
+        return $"{Id} {DateEmail} {Name}";
     }
 }
 

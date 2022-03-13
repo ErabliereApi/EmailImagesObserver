@@ -1,5 +1,6 @@
 ﻿@page "/imageanalysisdetails/{id}"
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @inject ImageInfoService imageService
 
 <h3>Image Analysis Details</h3>
@@ -38,7 +39,8 @@ else
     {
         return JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions
         {
-            WriteIndented = true
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         });
     }
 }

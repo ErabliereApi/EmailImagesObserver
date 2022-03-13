@@ -30,7 +30,7 @@ namespace BlazorApp.HostDecorator
         {
             var client = Services.GetRequiredService<IdleClient>();
 
-            _idleTask = client.RunAsync();
+            _idleTask = client.RunAsync(cancellationToken);
 
             return _host.StartAsync(cancellationToken);
         }
@@ -46,7 +46,7 @@ namespace BlazorApp.HostDecorator
                 await _idleTask;
             }
 
-            await _host.StopAsync();
+            await _host.StopAsync(cancellationToken);
         }
 
         private Task? _idleTask;

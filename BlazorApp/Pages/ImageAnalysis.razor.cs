@@ -23,7 +23,7 @@ namespace BlazorApp.Pages
         private IdleClient idleClient { get; set; }
 #nullable enable
 
-        private IList<Data.ImageInfo>? imageInfo;
+        private SortedSet<Data.ImageInfo>? imageInfo;
 
         private long DeleteId;
 
@@ -36,7 +36,7 @@ namespace BlazorApp.Pages
         {
             var asyncQuery = ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms);
 
-            imageInfo = new List<Data.ImageInfo>();
+            imageInfo = new SortedSet<Data.ImageInfo>();
 
             await foreach (var element in asyncQuery)
             {
@@ -52,7 +52,7 @@ namespace BlazorApp.Pages
         {
             skip += 15;
 
-            var newList = imageInfo?.ToList() ?? new List<Data.ImageInfo>();
+            var newList = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>());
 
             await foreach (var newImage in ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms))
             {
@@ -84,7 +84,7 @@ namespace BlazorApp.Pages
 
             skip = 0;
 
-            imageInfo = new List<Data.ImageInfo>();
+            imageInfo = new SortedSet<Data.ImageInfo>();
 
             await foreach (var image in ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms))
             {
@@ -108,10 +108,9 @@ namespace BlazorApp.Pages
             {
                 if (SearchTerms == null && skip == 0)
                 {
-                    var list = new List<Data.ImageInfo>(imageInfo?.Count ?? 0 + 1);
+                    var list = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>());
 
                     list.Add(value);
-                    list.AddRange(imageInfo ?? Array.Empty<Data.ImageInfo>());
 
                     imageInfo = list;
 
