@@ -3,7 +3,7 @@ name: EmailImagesObserver-Deploy
 on: 
   workflow_run:
       workflows: ["EmailImagesObserver-Image"]
-      branches: [master]
+      branches: [main]
       types: 
         - completed
   workflow_dispatch:
