@@ -36,14 +36,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// </summary>
     /// <param name="_loginInfo">Login info to the email and azure congitive service</param>
     /// <param name="baseDirectory">The base path to store the data</param>
-    public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config)
+    public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config, ImapClient imapClient)
     {
         _loginInfo = loginInfo.Value;
         if (_loginInfo.EmailLogin == null) throw new ArgumentNullException("config.EmailLogin");
         if (_loginInfo.EmailPassword == null) throw new ArgumentNullException("config.EmailPassword");
         if (_loginInfo.ImapServer == null) throw new ArgumentNullException("config.ImapServer");
 
-        _imapClient = new ImapClient(new ProtocolLogger(Console.OpenStandardOutput()));
+        _imapClient = imapClient;
         _tokenSource = new CancellationTokenSource();
         _observers = new ConcurrentDictionary<Guid, IObserver<ImageInfo>>();
         _scoped = provider.CreateScope();
@@ -242,6 +242,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             {
                 state.MessagesCount++;
 
+                _context.Update(state);
+
                 await _context.SaveChangesAsync(token);
             }
 
@@ -282,11 +284,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 var entity = SentFolder.GetBodyPart(item.UniqueId, part);
 
-                var imageInfo = new ImageInfo();
-
-                imageInfo.Name = fileName;
-                imageInfo.DateAjout = DateTimeOffset.Now;
-                imageInfo.DateEmail = item.Date;
+                var imageInfo = new ImageInfo
+                {
+                    Name = fileName,
+                    DateAjout = DateTimeOffset.Now,
+                    DateEmail = item.Date
+                };
 
                 using (var stream = new MemoryStream())
                 {

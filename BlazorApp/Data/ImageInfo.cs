@@ -27,11 +27,11 @@ public class ImageInfo
     {
         get
         {
-            if (_imagesAnalysis == null)
+            if (_imagesAnalysis == null && AzureImageAPIInfo != null)
             {
                 try
                 {
-                    _imagesAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(AzureImageAPIInfo ?? "");
+                    _imagesAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(AzureImageAPIInfo);
                 }
                 catch (Exception e)
                 {

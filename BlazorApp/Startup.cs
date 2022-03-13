@@ -4,18 +4,21 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using MailKit.Net.Imap;
+using MailKit;
 
 namespace BlazorApp;
 
 public class Startup
 {
-    public Startup(IConfiguration configuration)
+    public Startup(IConfiguration configuration, IWebHostEnvironment hostEnvironment)
     {
         Configuration = configuration;
+        HostEnvironment = hostEnvironment;
     }
 
     public IConfiguration Configuration { get; }
+    public IWebHostEnvironment HostEnvironment { get; }
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -33,6 +36,18 @@ public class Startup
                 .SetApplicationName(Constant.AppName);
         services.AddSingleton<LocalDataProtection>();
         services.AddSingleton<IdleClient>();
+        services.AddSingleton(sp => new ImapClient(sp.GetRequiredService<IProtocolLogger>()));
+        services.AddSingleton<IProtocolLogger>(sp =>
+        {
+            if (HostEnvironment.IsDevelopment())
+            {
+                return new ProtocolLogger(Console.OpenStandardOutput());
+            }
+            else
+            {
+                return new ProtocolLogger(Stream.Null);
+            }
+        });
         services.AddOptions<LoginInfo>().Configure<IConfiguration>((options, config) =>
         {
             config.GetSection("LoginInfo").Bind(options);
