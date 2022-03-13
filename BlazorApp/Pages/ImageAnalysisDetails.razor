@@ -1,4 +1,5 @@
 ﻿@page "/imageanalysisdetails/{id}"
+@using System.Text.Json
 @inject ImageInfoService imageService
 
 <h3>Image Analysis Details</h3>
@@ -8,11 +9,11 @@
 {
     <div class="row">
         <div class="col-md-6">
-            <img src="@ImageInfo.ImageLink" class="img-fluid"/>
+            <img src="data:image/png;base64,@Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>())" class="img-fluid" />
         </div>
         <div class="col-md-6">
             <pre class="text">
-                @ImageInfo.ImageInfoAsFormatedJson
+                @GetFormatedJson(ImageInfo?.ImageAnalysis)
             </pre>
         </div>
     </div>
@@ -24,12 +25,20 @@ else
 
 @code {
     [Parameter]
-    public string? Id { get; set; }
+    public string Id { get; set; } = "";
 
-    public ImageInfo? ImageInfo { get; private set; }
+    public Data.ImageInfo? ImageInfo { get; private set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        ImageInfo = imageService.GetImageInfo(Id);
+        ImageInfo = await imageService.GetImageInfoAsync(long.Parse(Id));
+    }
+
+    private string GetFormatedJson(object? imageInfo)
+    {
+        return JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
     }
 }

@@ -1,8 +1,10 @@
 using BlazorApp.Services;
-using AzureComputerVision;
-using Microsoft.Extensions.FileProviders;
+using BlazorApp.AzureComputerVision;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using BlazorApp.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorApp;
 
@@ -15,14 +17,12 @@ public class Startup
 
     public IConfiguration Configuration { get; }
 
-    // This method gets called by the runtime. Use this method to add services to the container.
-    // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
     public void ConfigureServices(IServiceCollection services)
     {
         /// Blazor app
         services.AddRazorPages();
         services.AddServerSideBlazor();
-        services.AddSingleton<ImageInfoService>();
+        services.AddScoped<ImageInfoService>();
 
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie();
@@ -32,12 +32,46 @@ public class Startup
                 .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Constant.AppName)))
                 .SetApplicationName(Constant.AppName);
         services.AddSingleton<LocalDataProtection>();
-        services.AddSingleton(sp => new IdleClient(sp.GetRequiredService<LocalDataProtection>().GetLoginInfo(), Constant.GetBaseDirectory()));
+        services.AddSingleton<IdleClient>();
+        services.AddOptions<LoginInfo>().Configure<IConfiguration>((options, config) =>
+        {
+            config.GetSection("LoginInfo").Bind(options);
+        });
+        services.AddOptions();
+
+        // AzureImageML
+        services.AddScoped<AzureImageMLApi>();
+
+        // Database
+        services.AddDbContext<BlazorDbContext>(options =>
+        {
+            if (Configuration["Database:Provider"] == "Sql")
+            {
+                options.UseSqlServer(Configuration.GetConnectionString("Sql"), options =>
+                {
+                    options.EnableRetryOnFailure();
+                });
+            }
+            else if (Configuration["Database:Provider"] == "Sqlite")
+            {
+                options.UseSqlite(Configuration.GetConnectionString("Sqlite"));
+            }
+            else
+            {
+                options.UseInMemoryDatabase("InMemory");
+            }
+        });
     }
 
-    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
     {
+        if (Configuration["Database:Provider"] == "Sql")
+{
+            var database = serviceProvider.GetRequiredService<BlazorDbContext>();
+
+            database.Database.Migrate();
+        }
+
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
@@ -48,13 +82,6 @@ public class Startup
         }
 
         app.UseStaticFiles();
-
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            RequestPath = "/images",
-            FileProvider = new PhysicalFileProvider(Constant.GetBaseDirectory()),
-            ServeUnknownFileTypes = false
-        });
 
         app.UseRouting();
 

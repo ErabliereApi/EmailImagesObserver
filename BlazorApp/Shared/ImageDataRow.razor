@@ -1,40 +1,45 @@
 ﻿<tr id="imageinfo-@imageInfo.Id">
     <td>@imageInfo.Id</td>
-    <td>@FormatDateTime(imageInfo.Directory.CreationTime)</td>
+    <td>@FormatDateTime(imageInfo.DateAjout)</td>
     <td>@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>
-        <img id="@string.Concat("image-id-", imageInfo.Id)" src="@imageInfo.ImageLink" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo.Id)')" />
+        <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo.Id)')" />
     </td>
     <td>
        <NavLink class="btn btn-primary" href="@string.Concat("imageanalysisdetails", "/", imageInfo.Id)">
            Details
        </NavLink>
-       <button @onclick="@(() => ConfirmDelete?.Invoke(id.Value, title))" class="btn btn-danger">Delete</button>
+       <button @onclick="@(() => ConfirmDelete?.Invoke(id, title))" class="btn btn-danger">Delete</button>
     </td>
 </tr>
 
 @code {
-    public int? id => imageInfo?.Id;
+    public long id => imageInfo.Id;
     public string title => "Delete image info " + id;
 
     [Parameter]
-    public ImageInfo imageInfo { get; set; } = new NullImageInfo();
+    public Data.ImageInfo imageInfo { get; set; } = new Data.NullImageInfo();
 
     [Parameter]
-    public Action<int, string>? ConfirmDelete { get; set; }
+    public Action<long, string>? ConfirmDelete { get; set; }
 
-    public string FormatDateTime(DateTime date)
+    public string FormatDateTime(DateTimeOffset? date)
     {
-        var now = DateTime.Now;
-
-        if (date < now - TimeSpan.FromHours(24))
+        if (date is null)
         {
-            return date.ToShortDateString();
+            return "Aucune date disponible";
         }
 
-        return date.ToShortTimeString();
+        var now = DateTimeOffset.Now;
+
+        if (date > now - TimeSpan.FromHours(24))
+        {
+            return date.Value.ToString("HH:mm:ss");
+        }
+
+        return date.Value.ToString("yyyy-MM-dd HH:mm:ss");
     }
 } 

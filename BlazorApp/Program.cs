@@ -1,43 +1,30 @@
-using AzureComputerVision;
+using BlazorApp;
 using BlazorApp.HostDecorator;
 
-namespace BlazorApp;
+Console.Out.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
 
-class Program
+try
 {
-    static void Main(string[] args)
-    {
-        try
-        {
-            var baseDirectory = Constant.GetBaseDirectory();
+    var host = Host.CreateDefaultBuilder(args)
+                   .ConfigureAppConfiguration(app =>
+                   {
+                       app.AddUserSecrets(typeof(Startup).Assembly)
+                          .AddCommandLine(args);
+                   })
+                   .ConfigureWebHostDefaults(webBuilder =>
+                   {
+                       webBuilder.UseStartup<Startup>();
+                   })
+                   .Build()
+                   .WithIdleClient();
 
-            Console.WriteLine($"Base directory : {baseDirectory}");
-
-            var host = CreateHostBuilder(args).Build().WithIdleClient();
-
-            host.Run();
-        }
-        catch (Exception? e)
-        {
-            LogException(e);
-        }
-    }
-
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            });
-
-    public static void LogException(Exception? exception)
-    {
-        while (exception != null)
-        {
-            Console.Error.WriteLine(exception.Message);
-            Console.Error.WriteLine(exception.StackTrace);
-
-            exception = exception.InnerException;
-        } 
-    }
+    host.Run();
+}
+catch (Exception? e)
+{
+    Console.Error.WriteLine(e);
+}
+finally
+{
+    Console.Out.WriteLine($"[INF] {DateTime.Now} Fin de EmailImagesObserver");
 }

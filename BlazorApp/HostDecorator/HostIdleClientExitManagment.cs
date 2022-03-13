@@ -1,9 +1,4 @@
-﻿using AzureComputerVision;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using BlazorApp.AzureComputerVision;
 
 namespace BlazorApp.HostDecorator
 {
@@ -40,17 +35,20 @@ namespace BlazorApp.HostDecorator
             return _host.StartAsync(cancellationToken);
         }
 
-        public Task StopAsync(CancellationToken cancellationToken = default)
+        public async Task StopAsync(CancellationToken cancellationToken = default)
         {
             var client = Services.GetRequiredService<IdleClient>();
 
             client.Exit();
 
-            _idleTask.GetAwaiter().GetResult();
+            if (_idleTask != null)
+            {
+                await _idleTask;
+            }
 
-            return _host.StopAsync();
+            await _host.StopAsync();
         }
 
-        private Task _idleTask;
+        private Task? _idleTask;
     }
 }
