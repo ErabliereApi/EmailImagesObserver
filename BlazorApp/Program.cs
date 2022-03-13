@@ -13,6 +13,7 @@ try
                    })
                    .ConfigureWebHostDefaults(webBuilder =>
                    {
+                       webBuilder.UseStaticWebAssets();
                        webBuilder.UseStartup<Startup>();
                    })
                    .Build()
