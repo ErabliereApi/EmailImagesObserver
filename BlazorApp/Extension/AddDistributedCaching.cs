@@ -20,7 +20,7 @@ public static class AddDistributedCachingExtension
     {
         var redisHostname = configuration.GetValue<string?>("REDIS_HOSTNAME");
 
-        if (redisHostname != null && string.IsNullOrWhiteSpace(redisHostname))
+        if (redisHostname == null || string.IsNullOrWhiteSpace(redisHostname))
         {
             services.AddDistributedMemoryCache();
         }

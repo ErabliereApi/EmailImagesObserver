@@ -30,7 +30,7 @@ public class Startup
     {
         services.AddForwardedHeadersIfEnable(Configuration);
 
-/// Blazor app
+        // Blazor app
         var mvcBuilder = services.AddRazorPages();
         if (AddAuthentificationExtension.IsAzureADAuth(Configuration))
         {
@@ -101,7 +101,7 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
     {
-        if (Configuration["Database:Provider"] == "Sql")
+        if (Configuration["Database:Provider"] == "Sql" || Configuration["Database:Provider"] == "Sqlite")
 {
             var database = serviceProvider.GetRequiredService<BlazorDbContext>();
 

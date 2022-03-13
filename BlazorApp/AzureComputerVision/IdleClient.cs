@@ -214,6 +214,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _emailStateDb = entry.Entity;
                 }
+                else
+                {
+                    var maxDate = await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token);
+
+                    _startDate = maxDate?.DateEmail?.DateTime ?? _startDate;
+                }
 
                 var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate), token);
 
