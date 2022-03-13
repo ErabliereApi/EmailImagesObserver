@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["BlazorApp/BlazorApp.csproj", "BlazorApp/"]
 RUN dotnet restore "BlazorApp/BlazorApp.csproj"
-COPY . .
+COPY BlazorApp/ .
 WORKDIR "/src/BlazorApp"
 RUN dotnet build "BlazorApp.csproj" -c Release -o /app/build
 

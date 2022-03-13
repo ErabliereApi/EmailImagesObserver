@@ -29,7 +29,7 @@ jobs:
 
       # Build the image
       - name: Docker build
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG ./BlazorApp/.
+        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
         
       # Tag the images
       - name: Docker tag
