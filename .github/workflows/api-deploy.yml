@@ -27,5 +27,5 @@ jobs:
       - name: Kubectl restart deployment
         run: |
           kubectl config current-context
-          kubectl rollout restart deployment emailimgesobserver-deployment -n erabliereapi-prod
-          kubectl rollout status deployment emailimgesobserver-deployment -n erabliereapi-prod
+          kubectl rollout restart deployment emailimagesobserver-deployment -n erabliereapi-prod
+          kubectl rollout status deployment emailimagesobserver-deployment -n erabliereapi-prod
