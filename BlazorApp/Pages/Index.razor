@@ -1,54 +1,54 @@
 ﻿@page "/"
-@using AzureComputerVision;
-@using System.IO; 
+@using AzureComputerVision
+@using System.IO
 @inject IdleClient idleClient
+@inject IConfiguration config
+@inject Data.BlazorDbContext context
 
 <h1>Email Images Observer!</h1>
 
 Welcome to email image observer app. Here you can watch info grab be the background process.
 
-<div class="card" style="width: 18rem;">
-    <div class="card-body">
-        <h5 class="card-title">Space used</h5>
-        <h6 class="card-subtitle mb-2 text-muted">@Constant.GetBaseDirectory()</h6>
-        <p class="card-text">@GetSpaceUsed()</p>
+@if (!idleClient.IsAuthenticated)
+{
+    <div class="card" style="width: 18rem;">
+        <div class="card-body alert-danger">
+            <h5 class="card-title">The client is not authenticated</h5>
+        </div>
     </div>
-</div>
+}
+else
+{
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">Space used</h5>
+            <h6 class="card-subtitle mb-2 text-muted">@(config["Database:Provider"] ?? "InMemory")</h6>
+            <p class="card-text">@GetSpaceUsed()</p>
+        </div>
+    </div>
 
-<div class="card" style="width: 18rem;">
-    <div class="card-body">
-        <h5 class="card-title">Email Sent</h5>
-        <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessagesCount messages</h6>
-        <p class="card-text">@imageCount images</p>
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">Email Sent</h5>
+            <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessageCount messages</h6>
+            <p class="card-text">@EmailState.MessagesCount images</p>
+        </div>
     </div>
-</div>
+}
+
 
 @code 
 {
-	public int imageCount { get; set; } = 0;
+    public Data.EmailStates EmailState { get; set; } = new Data.EmailStates();
+
+    protected override async Task OnInitializedAsync()
+    {
+        EmailState = await context.EmailStates.Where(e => e.Email == config["LoginInfo:EmailLogin"]).FirstOrDefaultAsync() ?? EmailState;
+    }
 
     protected string GetSpaceUsed()
     {
-        var baseDirectory = new DirectoryInfo(Constant.GetBaseDirectory());
-
-        long size = 0;
-
-        foreach (var file in baseDirectory.EnumerateFiles())
-        {
-            size += file.Length;
-        }
-
-        foreach (var directory in baseDirectory.GetDirectories())
-        {
-            foreach (var file in directory.EnumerateFiles())
-            {
-                size += file.Length;
-				
-				if (file.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
-					imageCount++;
-				}
-            }
-        }
+        var size = EmailState.Size;
 
         if (size < 1000)
         {

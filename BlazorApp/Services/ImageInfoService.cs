@@ -1,73 +1,55 @@
-using AzureComputerVision;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using BlazorApp.Data;
+using Microsoft.EntityFrameworkCore;
 
-namespace BlazorApp.Services
+namespace BlazorApp.Services;
+
+public class ImageInfoService
 {
-    public class ImageInfoService
+    private readonly BlazorDbContext _context;
+
+    public ImageInfoService(BlazorDbContext context)
     {
-        public Task<IEnumerable<ImageInfo>> GetImageInfo(int? take, int? skip = 0, string? search = null)
+        _context = context;
+    }
+
+    public IAsyncEnumerable<ImageInfo> GetImageInfoAsync(int? take, int? skip = 0, string? search = null)
+    {
+        IQueryable<ImageInfo> query = _context.ImagesInfo.AsNoTracking();
+
+        if (string.IsNullOrWhiteSpace(search) == false)
         {
-            return Task.Run(() =>
-            {
-                Console.WriteLine("Loading data from directory...");
-
-                var directory = new DirectoryInfo(Constant.GetBaseDirectory());
-
-                IEnumerable<ImageInfo> infoArray = directory.EnumerateDirectories()
-                                                            .Where(d => d.GetFiles().Any(f => f.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
-                                                                                              f.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)))
-                                                            .Select(d => new ImageInfo(d))
-                                                            .OrderByDescending(i => i.Id);
-
-                if (string.IsNullOrWhiteSpace(search) == false)
-                {
-                    infoArray = infoArray.Where(d => search.Split(' ').All(w => d.ImageInfoAsFormatedJson?.Contains(search, StringComparison.OrdinalIgnoreCase) == true));
-                }
-
-                if (skip.HasValue)
-                {
-                    infoArray = infoArray.Skip(skip.Value);
-                }
-
-                if (take.HasValue)
-                {
-                    infoArray = infoArray.Take(take.Value);
-                }
-
-                return infoArray;
-            });
+            query = query.Where(i => i.AzureImageAPIInfo != null && i.AzureImageAPIInfo.Contains(search));
         }
 
-        public ImageInfo? GetImageInfo(string? id)
+        query = query.OrderByDescending(i => i.DateAjout);
+
+        if (skip.HasValue)
         {
-            if (id is null) return null;
-
-            Console.WriteLine($"Loading {id} from directory...");
-
-            var path = Path.Combine(Constant.GetBaseDirectory(), id.ToString());
-
-            if (Directory.Exists(path) == false)
-            {
-                return null;
-            }
-
-            return new ImageInfo(new DirectoryInfo(path));
+            query = query.Skip(skip.Value);
         }
 
-        public void DeleteImageInfo(int id)
+        if (take.HasValue)
         {
-            var filesLocation = Path.Combine(Constant.GetBaseDirectory(), id.ToString());
+            query = query.Take(take.Value);
+        }
 
-            foreach (var file in Directory.GetFiles(filesLocation))
-            {
-                File.Delete(file);
-            }
+        return query.AsAsyncEnumerable();
+    }
 
-            Console.WriteLine("Image info id " + id + " is deleted");
+    public ValueTask<ImageInfo?> GetImageInfoAsync(long id)
+    {
+        return _context.ImagesInfo.FindAsync(new object?[] { id });
+    }
+
+    public async Task DeleteImageInfoAsync(long id)
+    {
+        var imageInfo = await GetImageInfoAsync(id);
+
+        if (imageInfo is not null)
+        {
+            _ = _context.ImagesInfo.Remove(imageInfo);
+
+            await _context.SaveChangesAsync();
         }
     }
 }

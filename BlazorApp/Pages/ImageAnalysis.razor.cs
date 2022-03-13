@@ -1,19 +1,15 @@
-﻿using AzureComputerVision;
+﻿using BlazorApp.AzureComputerVision;
 using BlazorApp.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BlazorApp.Pages
 {
-    public partial class ImageAnalysis : IObserver<ImageInfo>, IDisposable
+    public partial class ImageAnalysis : IObserver<Data.ImageInfo>, IDisposable
     {
         public Guid ClientSessionId { get; } = Guid.NewGuid();
 
+#nullable disable
         [Inject]
         private ILogger<ImageAnalysis> Logger { get; set; }
 
@@ -25,11 +21,11 @@ namespace BlazorApp.Pages
 
         [Inject]
         private IdleClient idleClient { get; set; }
+#nullable enable
 
+        private SortedSet<Data.ImageInfo>? imageInfo;
 
-        private IList<ImageInfo>? imageInfo;
-
-        private int DeleteId;
+        private long DeleteId;
 
         private int skip = 0;
 
@@ -38,7 +34,16 @@ namespace BlazorApp.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            imageInfo = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
+            var asyncQuery = ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms);
+
+            imageInfo = new SortedSet<Data.ImageInfo>();
+
+            await foreach (var element in asyncQuery)
+            {
+                imageInfo.Add(element);
+
+                StateHasChanged();
+            }
 
             idleClient.Subscribe(this);
         }
@@ -47,16 +52,17 @@ namespace BlazorApp.Pages
         {
             skip += 15;
 
-            var nextResults = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
+            var newList = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>());
 
-            var newList = imageInfo.ToList();
-
-            newList.AddRange(nextResults);
+            await foreach (var newImage in ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms))
+            {
+                newList.Add(newImage);
+            }
 
             imageInfo = newList;
         }
 
-        protected void ConfirmDelete(int id, string title)
+        protected void ConfirmDelete(long id, string title)
         {
             DeleteId = id;
 
@@ -67,7 +73,8 @@ namespace BlazorApp.Pages
         {
             await JS.InvokeAsync<bool>("hideDeleteDialog");
 
-            ImageInfoService.DeleteImageInfo(DeleteId);
+            await ImageInfoService.DeleteImageInfoAsync(DeleteId);
+
             await OnInitializedAsync();
         }
 
@@ -77,7 +84,12 @@ namespace BlazorApp.Pages
 
             skip = 0;
 
-            imageInfo = (await ImageInfoService.GetImageInfo(take: 15, skip: skip, SearchTerms)).ToList();
+            imageInfo = new SortedSet<Data.ImageInfo>();
+
+            await foreach (var image in ImageInfoService.GetImageInfoAsync(take: 15, skip: skip, SearchTerms))
+            {
+                imageInfo.Add(image);
+            }
         }
 
         public void OnCompleted()
@@ -90,20 +102,19 @@ namespace BlazorApp.Pages
             Logger.LogError(error, error.Message);
         }
 
-        public void OnNext(ImageInfo value)
+        public void OnNext(Data.ImageInfo value)
         {
             InvokeAsync(() =>
             {
                 if (SearchTerms == null && skip == 0)
                 {
-                    var list = new List<ImageInfo>(imageInfo.Count + 1);
+                    var list = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>());
 
                     list.Add(value);
-                    list.AddRange(imageInfo);
 
                     imageInfo = list;
 
-                    Console.WriteLine("Calling StateHasChanged");
+                    Console.Out.WriteLine("[OnNext] Calling StateHasChanged");
 
                     StateHasChanged();
                 }

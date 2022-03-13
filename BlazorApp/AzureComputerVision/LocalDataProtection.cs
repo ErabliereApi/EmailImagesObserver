@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace AzureComputerVision;
+namespace BlazorApp.AzureComputerVision;
 
 public class LocalDataProtection
 {
@@ -11,7 +11,7 @@ public class LocalDataProtection
     public LocalDataProtection(IDataProtectionProvider dataProtector)
     {
         this.dataProtector = dataProtector.CreateProtector(Constant.AppName);
-        this.settingsFile = Path.Combine(Constant.GetBaseDirectory(), "settings.data");
+        this.settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.data");
     }
 
     public void SaveLoginInfo(LoginInfo loginInfo)
@@ -49,7 +49,7 @@ public class LocalDataProtection
         Console.Write("ImapServer: ");
         loginInfo.ImapServer = Console.ReadLine();
         Console.Write("ImapPort: ");
-        loginInfo.ImapPort = int.Parse(Console.ReadLine());
+        loginInfo.ImapPort = int.Parse(Console.ReadLine() ?? "0");
 
         SaveLoginInfo(loginInfo);
 
