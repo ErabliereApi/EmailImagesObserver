@@ -108,6 +108,8 @@ public class Startup
             database.Database.Migrate();
         }
 
+        app.AddReverseProxyPathOptions(Configuration);
+
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
