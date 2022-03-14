@@ -198,7 +198,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 // fetch summary information for messages that we don't already have
                 _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync();
 
-                _startDate = await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token)?.DateEmail?.DateTime ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+                _startDate = (await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token))?.DateEmail?.DateTime ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
 
                 if (_emailStateDb == null)
                 {
