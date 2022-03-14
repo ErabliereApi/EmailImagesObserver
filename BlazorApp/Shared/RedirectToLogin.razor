@@ -1,5 +1,6 @@
 ﻿@inject NavigationManager Navigation
 @inject AuthUrlPagesProvider AuthUrlProvider
+@inject UrlService UrlService
 
 @code {
     [CascadingParameter]
@@ -16,7 +17,7 @@
 
         if (authenticationState?.User?.Identity is null || !authenticationState.User.Identity.IsAuthenticated)
         {
-            var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+            var returnUrl = UrlService.Url(Navigation.ToBaseRelativePath(Navigation.Uri));
 
             if (string.IsNullOrWhiteSpace(returnUrl))
             {
