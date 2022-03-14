@@ -5,6 +5,7 @@
     Layout = null;
 }
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@inject BlazorApp.Services.UrlService urlService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -12,11 +13,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email images observer</title>
-    <base href="~/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
-    <link href="css/site.css" rel="stylesheet" />
-    <link href="~/css/image-modal.css" rel="stylesheet" />
-    <link href="BlazorApp.styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="@urlService.Url("/css/bootstrap/bootstrap.min.css")" />
+    <link href="@urlService.Url("css/site.css")" rel="stylesheet" />
+    <link href="@urlService.Url("/css/image-modal.css")" rel="stylesheet" />
+    <link href="@urlService.Url("BlazorApp.styles.css")" rel="stylesheet" />
 </head>
 <body>
     @{
@@ -36,7 +36,7 @@
         <environment include="Development">
             An unhandled exception has occurred. See browser dev tools for details.
         </environment>
-        <a href="" class="reload">Reload</a>
+        <a href="@urlService.Url("/")" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
 
@@ -91,6 +91,6 @@
             }
         }
     </script>
-    <script src="_framework/blazor.server.js"></script>
+    <script src="@urlService.Url("/_framework/blazor.server.js")"></script>
 </body>
 </html>

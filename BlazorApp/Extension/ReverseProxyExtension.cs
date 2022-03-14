@@ -11,8 +11,15 @@ public static class ReverseProxyExtension
 
         if (string.IsNullOrWhiteSpace(config["StartsWithSegments"]) == false)
         {
+            var exclusion = config["StartsWithSegments.Exclusions"]?.Split(',');
+
             app.Use((context, next) =>
             {
+                if (exclusion?.Contains(context.Request.Path.ToString()) == true)
+                {
+                    return next();
+                }
+
                 if (context.Request.Path.StartsWithSegments(config["StartsWithSegments"], out var remainder))
                 {
                     context.Request.Path = remainder;

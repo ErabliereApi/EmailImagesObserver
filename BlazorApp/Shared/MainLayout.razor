@@ -12,14 +12,7 @@
         <div class="top-row px-4">
             <AuthorizeView>
                 <Authorized>
-                    @if (AuthUrlProvider.IsIdentity)
-                    {
-                        <a href="/identity/account/manage">Welcome @context?.User?.Identity?.Name</a>
-                    }
-                    else
-                    {
-                        <span>Welcome @context?.User?.Identity?.Name</span>
-                    }
+                    <span>Welcome @name</span>
                 </Authorized>
             </AuthorizeView>
             <a href="https://github.com/freddycoder/EmailImagesObserver" target="_blank">About</a>
@@ -34,10 +27,14 @@
 @code {
     public ClaimsPrincipal? ClaimsPrincipal { get; set; }
 
+    string? name { get; set; }
+
     protected override async Task OnParametersSetAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
         ClaimsPrincipal = authState.User;
+
+        name = ClaimsPrincipal.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
     }
 }

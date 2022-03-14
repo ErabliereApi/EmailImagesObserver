@@ -44,6 +44,7 @@ public class Startup
         }
         services.AddServerSideBlazor();
         services.AddScoped<ImageInfoService>();
+        services.AddSingleton(new UrlService(Configuration["StartsWithSegments"]));
 
         services.AddTeamMemberVelocityAutorisation(Configuration);
 
