@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using BlazorApp.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlazorApp.Controller;
@@ -9,6 +10,13 @@ namespace BlazorApp.Controller;
 [Route("[controller]/[action]")]
 public class AzureADController : ControllerBase
 {
+    private IConfiguration _config;
+
+    public AzureADController(IConfiguration config)
+    {
+        _config = config;
+    }
+
     /// <summary>
     /// Login method to handle Microsoft authentication
     /// </summary>
@@ -16,9 +24,16 @@ public class AzureADController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> Login(string returnUrl)
     {
+        var postFix = "";
+
+        if (returnUrl?.EndsWith("/") == true)
+        {
+            postFix = _config["StartsWithSegments"];
+        }
+
         var props = new AuthenticationProperties
         {
-            RedirectUri = returnUrl
+            RedirectUri = $"{returnUrl}{postFix}"
         };
 
         return await Task.Run(() => Challenge(props));

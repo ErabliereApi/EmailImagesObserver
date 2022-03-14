@@ -1,7 +1,6 @@
 using BlazorApp.Services;
 using BlazorApp.AzureComputerVision;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using MailKit.Net.Imap;
@@ -9,9 +8,7 @@ using MailKit;
 using BlazorApp.Extension;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web.UI;
-using Microsoft.Extensions.Logging;
 
 namespace BlazorApp;
 
