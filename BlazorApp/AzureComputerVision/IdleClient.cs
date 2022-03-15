@@ -53,7 +53,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     }
 
     private IMailFolder? _sentFolder;
-    private DateTime _startDate;
+    private DateTimeOffset _startDate;
 
     /// <summary>
     /// The SentFolder of the email account
@@ -228,7 +228,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _emailStateDb = entry.Entity;
                 }
 
-                var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate), token);
+                var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.ToUniversalTime().DateTime), token);
 
                 fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
                                                               MessageSummaryItems.UniqueId |
@@ -250,7 +250,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         foreach (IMessageSummary message in fetched)
         {
             if (print)
-                _logger.LogInformation("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
+                _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder, message.Envelope.Subject);
 
             if (analyseImage(message))
             {
@@ -273,7 +273,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var attachmentCount = attachments.Count();
 
-        _logger.LogInformation($"Attachments count: {attachmentCount}");
+        _logger.LogInformation("Attachments count: {attachmentCount}", attachmentCount);
 
         if (attachmentCount == 0)
         {
@@ -452,7 +452,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             int arrived = folder.Count - _emailStateDb.MessagesCount;
 
             if (arrived > 1)
-                _logger.LogInformation("\t{0} new messages have arrived.", arrived);
+                _logger.LogInformation("\t{arrived} new messages have arrived.", arrived);
 
             else
                 _logger.LogInformation("\t1 new message has arrived.");
@@ -533,11 +533,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (_observers.TryAdd(sessionId, observer))
         {
-            _logger.LogInformation($"Subscribe {sessionId} successfully");
+            _logger.LogInformation("Subscribe {sessionId} successfully", sessionId);
         }
         else
         {
-            _logger.LogError($"[WRN] Failed to subscribe {sessionId}");
+            _logger.LogError("[WRN] Failed to subscribe {sessionId}", sessionId);
         }
 
         return this;
@@ -549,13 +549,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         var idProperty = type.GetProperty("ClientSessionId");
         var sessionId = idProperty?.GetValue(observer) as Guid?;
 
-        if (_observers.TryRemove(sessionId ?? Guid.Empty, out var observer1))
+        if (_observers.TryRemove(sessionId ?? Guid.Empty, out _))
         {
-            _logger.LogInformation($"Unsubscribe {sessionId ?? Guid.Empty} successfully");
+            _logger.LogInformation("Unsubscribe {sessionId} successfully", sessionId);
         }
         else
         {
-            _logger.LogError($"[WRN] Failed to unsubscribe {sessionId ?? Guid.Empty}");
+            _logger.LogError("[WRN] Failed to unsubscribe {sessionId}", sessionId);
         }
 
         return this;
