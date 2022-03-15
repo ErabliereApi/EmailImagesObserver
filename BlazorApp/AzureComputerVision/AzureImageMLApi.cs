@@ -16,6 +16,7 @@ public class AzureImageMLApi
     static readonly CountByIntervalAwaitableConstraint daysTimeConstraint = new(5000, TimeSpan.FromDays(1));
     static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
     private readonly Data.BlazorDbContext _context;
+    private readonly ILogger<AzureImageMLApi> _logger;
 
     /// <summary>
     /// Get an authenticated <see cref="ComputerVisionClient" />
@@ -30,9 +31,10 @@ public class AzureImageMLApi
         return client;
     }
 
-    public AzureImageMLApi(Data.BlazorDbContext context)
+    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -44,14 +46,14 @@ public class AzureImageMLApi
     /// <returns></returns>
     public async Task AnalyzeImageAsync(ComputerVisionClient client, Data.ImageInfo imageInfo, ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, CancellationToken token = default)
     {
-        Console.WriteLine("----------------------------------------------------------");
-        Console.WriteLine("ANALYZE IMAGE - ATTACHMENT");
-        Console.WriteLine(imageInfo);
-        Console.WriteLine();
+        _logger.LogInformation("----------------------------------------------------------");
+        _logger.LogInformation("ANALYZE IMAGE - ATTACHMENT");
+        _logger.LogInformation(imageInfo.ToString());
+        _logger.LogInformation("");
 
         if (imageInfo.Images == null)
         {
-            Console.WriteLine("Image is null, end function AnalyseImageAsync");
+            _logger.LogInformation("Image is null, end function AnalyseImageAsync");
             return;
         }
 
@@ -73,14 +75,13 @@ public class AzureImageMLApi
 
             using var stream = new MemoryStream(imageInfo.Images);
 
-            // Analyze the local image.
             ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
 
             var jsonResult = JsonSerializer.Serialize(results);
 
             imageInfo.AzureImageAPIInfo = jsonResult;
 
-            Console.WriteLine(jsonResult);
+            _logger.LogInformation(jsonResult);
 
             _context.Update(imageInfo);
 
@@ -96,7 +97,7 @@ public class AzureImageMLApi
         }
         catch (Exception? e)
         {
-            Console.Error.WriteLine(e);
+            _logger.LogError(e, e.Message);
         }
     }
 }

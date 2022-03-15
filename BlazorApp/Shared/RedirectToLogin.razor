@@ -23,16 +23,16 @@
             {
                 if (AuthUrlProvider.Schema == "Identity.Application")
                 {
-                    Navigation.NavigateTo($"{AuthUrlProvider.LoginPage}?returnUrl=/", true);
+                    Navigation.NavigateTo($"{UrlService.Url(AuthUrlProvider.LoginPage)}?returnUrl=/", true);
                 }
                 else
                 {
-                    Navigation.NavigateTo(AuthUrlProvider.LoginPage, true);
+                    Navigation.NavigateTo(UrlService.Url(AuthUrlProvider.LoginPage), true);
                 }
             }
             else
             {
-                Navigation.NavigateTo($"{AuthUrlProvider.LoginPage}?returnUrl={returnUrl}", true);
+                Navigation.NavigateTo($"{UrlService.Url(AuthUrlProvider.LoginPage)}?returnUrl={returnUrl}", true);
             }
         }
     }

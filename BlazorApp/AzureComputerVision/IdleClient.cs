@@ -28,13 +28,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly BlazorDbContext _context;
     private readonly AzureImageMLApi _azureImageML;
     private readonly IConfiguration _config;
+    private readonly ILogger<IdleClient> _logger;
     private EmailStates? _emailStateDb;
 
     /// <summary>
     /// Create a IdleClient base on login config and a base directory 
     /// for store data
     /// </summary>
-    public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config, ImapClient imapClient)
+    public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config, ImapClient imapClient, ILogger<IdleClient> logger)
     {
         _loginInfo = loginInfo.Value;
         if (_loginInfo.EmailLogin == null) throw new ArgumentNullException("config.EmailLogin");
@@ -48,6 +49,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         _context = _scoped.ServiceProvider.GetRequiredService<BlazorDbContext>();
         _azureImageML = _scoped.ServiceProvider.GetRequiredService<AzureImageMLApi>();
         _config = config;
+        _logger = logger;
     }
 
     private IMailFolder? _sentFolder;
@@ -86,7 +88,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         try
         {
             await ReconnectAsync();
-            await FetchMessageSummariesAsync(print: false, analyseImage: message => message.InternalDate >= _config.GetValue<DateTimeOffset>("StartDate"), token);
+            await FetchMessageSummariesAsync(print: false, analyseImage: AnalyseImagesBaseOnDates, token);
         }
         catch (OperationCanceledException)
         {
@@ -95,7 +97,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine(e);
+            _logger.LogError(e, e.Message);
             throw;
         }
 
@@ -117,13 +119,25 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         await IdleAsync();
 
-        Console.WriteLine("Remove events");
+        _logger.LogInformation("Remove events");
         sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
         sentFolder.MessageExpunged -= OnMessageExpunged;
         sentFolder.CountChanged -= OnCountChanged;
 
-        Console.WriteLine("Disconnect client");
+        _logger.LogInformation("Disconnect client");
         await _imapClient.DisconnectAsync(true);
+    }
+
+    private bool AnalyseImagesBaseOnDates(IMessageSummary message)
+    {
+        var firstCheck = message.InternalDate >= _config.GetValue<DateTimeOffset>("StartDate");
+
+        if (firstCheck)
+        {
+            return message.InternalDate >= _startDate;
+        }
+
+        return firstCheck;
     }
 
     /// <summary>
@@ -131,21 +145,21 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// </summary>
     public void Exit()
     {
-        Console.WriteLine("IdleClient.Exit");
+        _logger.LogInformation("IdleClient.Exit");
         if (_tokenSource.IsCancellationRequested == false)
         {
             _tokenSource.Cancel();
         }
         else
         {
-            Console.WriteLine("A cancellation request has already been sent. Nothing to do");
+            _logger.LogInformation("A cancellation request has already been sent. Nothing to do");
         }
     }
 
     /// <inheritdoc cref="IDisposable.Dispose"/>
     public void Dispose()
     {
-        Console.WriteLine("Disposing the IdleClient");
+        _logger.LogInformation("Disposing the IdleClient");
         GC.SuppressFinalize(this);
         _imapClient.Dispose();
         _tokenSource.Dispose();
@@ -162,7 +176,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (messagesArrived)
                 {
-                    await FetchMessageSummariesAsync(print: true, analyseImage: message => message.InternalDate > _config.GetValue<DateTimeOffset>("StartDate"), CancellationToken.None);
+                    await FetchMessageSummariesAsync(print: true, analyseImage: AnalyseImagesBaseOnDates, CancellationToken.None);
                     messagesArrived = false;
                 }
             }
@@ -214,18 +228,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _emailStateDb = entry.Entity;
                 }
-                else
-                {
-                    var maxDate = await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token);
-
-                    _startDate = maxDate?.DateEmail?.DateTime ?? _startDate;
-                }
 
                 var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate), token);
 
                 fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
-                                                     MessageSummaryItems.UniqueId |
-                                                     MessageSummaryItems.BodyStructure, _tokenSource.Token);
+                                                              MessageSummaryItems.UniqueId |
+                                                              MessageSummaryItems.BodyStructure, _tokenSource.Token);
                 break;
             }
             catch (ImapProtocolException)
@@ -243,7 +251,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         foreach (IMessageSummary message in fetched)
         {
             if (print)
-                Console.WriteLine("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
+                _logger.LogInformation("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
 
             if (_emailStateDb != null)
             {
@@ -263,28 +271,28 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var attachmentCount = attachments.Count();
 
-        Console.WriteLine($"Attachments count: {attachmentCount}");
+        _logger.LogInformation($"Attachments count: {attachmentCount}");
 
         if (attachmentCount == 0)
         {
-            Console.WriteLine("Look for a base64 image in the BodyParts");
+            _logger.LogInformation("Look for a base64 image in the BodyParts");
             foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
                                                            p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true))
             {
-                Console.WriteLine(part);
-                Console.WriteLine(part.GetType());
+                _logger.LogInformation(part.ToString());
+                _logger.LogInformation(part.GetType().ToString());
 
-                Console.WriteLine(part.ContentDescription);
-                Console.WriteLine(part.ContentDisposition);
-                Console.WriteLine(part.ContentId);
-                Console.WriteLine(part.ContentLocation);
-                Console.WriteLine(part.ContentMd5);
-                Console.WriteLine(part.ContentTransferEncoding);
-                Console.WriteLine(part.ContentType);
-                Console.WriteLine(part.FileName);
-                Console.WriteLine(part.IsAttachment);
-                Console.WriteLine(part.Octets);
-                Console.WriteLine(part.PartSpecifier);
+                _logger.LogInformation(part.ContentDescription);
+                _logger.LogInformation(part.ContentDisposition?.ToString());
+                _logger.LogInformation(part.ContentId);
+                _logger.LogInformation(part.ContentLocation?.ToString());
+                _logger.LogInformation(part.ContentMd5);
+                _logger.LogInformation(part.ContentTransferEncoding);
+                _logger.LogInformation(part.ContentType?.ToString());
+                _logger.LogInformation(part.FileName);
+                _logger.LogInformation(part.IsAttachment.ToString());
+                _logger.LogInformation(part.Octets.ToString());
+                _logger.LogInformation(part.PartSpecifier);
 
                 // note: it's possible for this to be null, but most will specify a filename
                 var fileName = part.FileName;
@@ -325,17 +333,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (var attachment in attachments)
         {
-            Console.WriteLine(attachment.ContentDescription);
-            Console.WriteLine(attachment.ContentDisposition);
-            Console.WriteLine(attachment.ContentId);
-            Console.WriteLine(attachment.ContentLocation);
-            Console.WriteLine(attachment.ContentMd5);
-            Console.WriteLine(attachment.ContentTransferEncoding);
-            Console.WriteLine(attachment.ContentType);
-            Console.WriteLine(attachment.FileName);
-            Console.WriteLine(attachment.IsAttachment);
-            Console.WriteLine(attachment.Octets);
-            Console.WriteLine(attachment.PartSpecifier);
+            _logger.LogInformation(attachment.ContentDescription);
+            _logger.LogInformation(attachment.ContentDisposition?.ToString());
+            _logger.LogInformation(attachment.ContentId);
+            _logger.LogInformation(attachment.ContentLocation?.ToString());
+            _logger.LogInformation(attachment.ContentMd5);
+            _logger.LogInformation(attachment.ContentTransferEncoding);
+            _logger.LogInformation(attachment.ContentType?.ToString());
+            _logger.LogInformation(attachment.FileName);
+            _logger.LogInformation(attachment.IsAttachment.ToString());
+            _logger.LogInformation(attachment.Octets.ToString());
+            _logger.LogInformation(attachment.PartSpecifier);
 
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                 attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
@@ -443,10 +451,10 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             int arrived = folder.Count - _emailStateDb.MessagesCount;
 
             if (arrived > 1)
-                Console.WriteLine("\t{0} new messages have arrived.", arrived);
+                _logger.LogInformation("\t{0} new messages have arrived.", arrived);
 
             else
-                Console.WriteLine("\t1 new message has arrived.");
+                _logger.LogInformation("\t1 new message has arrived.");
 
             messagesArrived = true;
             done?.Cancel();
@@ -467,7 +475,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            Console.WriteLine("{0}: message #{1} has been expunged.", folder, e.Index);
+            _logger.LogInformation("{0}: message #{1} has been expunged.", folder, e.Index);
         }
     }
 
@@ -475,7 +483,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var folder = sender as ImapFolder;
 
-        Console.WriteLine("{0}: flags have changed for message #{1} ({2}).", folder, e.Index, e.Flags);
+        _logger.LogInformation("{0}: flags have changed for message #{1} ({2}).", folder, e.Index, e.Flags);
     }
 
     private async Task ParseAndSaveImageAsync(string imageString, ImageInfo imageInfo, CancellationToken token)
@@ -524,11 +532,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (_observers.TryAdd(sessionId, observer))
         {
-            Console.WriteLine($"Subscribe {sessionId} successfully");
+            _logger.LogInformation($"Subscribe {sessionId} successfully");
         }
         else
         {
-            Console.Error.WriteLine($"[WRN] Failed to subscribe {sessionId}");
+            _logger.LogError($"[WRN] Failed to subscribe {sessionId}");
         }
 
         return this;
@@ -542,11 +550,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (_observers.TryRemove(sessionId ?? Guid.Empty, out var observer1))
         {
-            Console.WriteLine($"Unsubscribe {sessionId ?? Guid.Empty} successfully");
+            _logger.LogInformation($"Unsubscribe {sessionId ?? Guid.Empty} successfully");
         }
         else
         {
-            Console.Error.WriteLine($"[WRN] Failed to unsubscribe {sessionId ?? Guid.Empty}");
+            _logger.LogError($"[WRN] Failed to unsubscribe {sessionId ?? Guid.Empty}");
         }
 
         return this;
