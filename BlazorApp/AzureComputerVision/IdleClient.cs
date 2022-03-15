@@ -209,7 +209,6 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             try
             {
-                // fetch summary information for messages that we don't already have
                 _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync();
 
                 _startDate = (await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token))?.DateEmail?.DateTime ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
@@ -253,17 +252,20 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             if (print)
                 _logger.LogInformation("{0}: new message: {1}", SentFolder, message.Envelope.Subject);
 
-            if (_emailStateDb != null)
-            {
-                _emailStateDb.MessagesCount++;
-
-                _context.Update(_emailStateDb);
-
-                await _context.SaveChangesAsync(token);
-            }
-
             if (analyseImage(message))
+            {
+                if (_emailStateDb != null)
+                {
+                    _emailStateDb.MessagesCount++;
+
+                    _context.Update(_emailStateDb);
+
+                    await _context.SaveChangesAsync(token);
+                }
+
                 await MaybeAnalyseImagesAsync(message, message.Attachments, token);
+            }
+                
         }
     }
 
@@ -354,8 +356,6 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 string? fileName = part.FileName;
 
-                using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
-
                 var imageInfo = new ImageInfo
                 {
                     Name = fileName,
@@ -392,6 +392,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
 
+                using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
                 await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
             }
         }

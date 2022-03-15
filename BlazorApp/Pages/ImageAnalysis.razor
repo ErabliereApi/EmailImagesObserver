@@ -9,42 +9,44 @@
     <button class="btn btn-primary" @onclick="TriggerSearch">Search</button>
 </div>
 
-<table class="table table-responsive-md table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Date</th>
-            <th>Dominant colors</th>
-            <th>Categories</th>
-            <th>Caption</th>
-            <th>Tags</th>
-            <th>Image</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (imageInfo == null)
-        {
+<div class="table-responsive-sm">
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td><em>Loading...</em></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <th class="">Id</th>
+                <th>Date</th>
+                <th class="">Dominant colors</th>
+                <th class="">Categories</th>
+                <th class="">Caption</th>
+                <th class="">Tags</th>
+                <th>Image</th>
+                <th></th>
             </tr>
-        }
-        else
-        {
-            @foreach (var imageData in imageInfo)
+        </thead>
+        <tbody>
+            @if (imageInfo == null)
             {
-                <ImageDataRow @key="imageData.Id" imageInfo="imageData" ConfirmDelete="ConfirmDelete" />
+                <tr>
+                    <td class=""></td>
+                    <td><em>Loading...</em></td>
+                    <td class=""></td>
+                    <td class=""></td>
+                    <td class=""></td>
+                    <td class=""></td>
+                    <td></td>
+                    <td></td>
+                </tr>
             }
-        }
-    </tbody>
-</table>
+            else
+            {
+                @foreach (var imageData in imageInfo)
+                {
+                    <ImageDataRow @key="imageData.Id" imageInfo="imageData" ConfirmDelete="ConfirmDelete" />
+                }
+            }
+        </tbody>
+    </table>
+</div>
 
 <div>
     <button @onclick="LoadNext" class="btn btn-secondary">Load next</button>
