@@ -1,0 +1,36 @@
+﻿@page "/admin"
+@inject BlazorDbContext Context
+@inject IConfiguration Config
+
+<h3>Administration</h3>
+
+<div>
+    <h4>Clear table</h4>
+
+    <div>
+        <h5>@Count Imges</h5>
+    </div>
+
+    <div>
+        <button class="btn btn-danger" @onclick="ClearTable">Clear</button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    public int Count { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Count = await Context.ImagesInfo.CountAsync();
+    }
+
+    private async Task ClearTable()
+    {
+        await Context.ClearImagesAsync(Config["LoginInfo:EmailLogin"]);
+
+        Count = await Context.ImagesInfo.CountAsync();
+    }
+}

@@ -9,7 +9,7 @@ public class UrlService
         _basePath = basePath;
     }
 
-    public string Url(string url)
+    public string Url(string? url)
     {
         return $"{_basePath}{url}";
     }

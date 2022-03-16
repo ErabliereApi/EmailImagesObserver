@@ -16,4 +16,27 @@ public class BlazorDbContext : DbContext
     public DbSet<ImageInfo> ImagesInfo { get; set; }
 
     public DbSet<EmailStates> EmailStates { get; set; }
+
+    public async Task<int> ClearImagesAsync(string email, CancellationToken token = default)
+    {
+        int saved = 0;
+
+        while ((await ImagesInfo.CountAsync(token)) > 0)
+        {
+            var images = await ImagesInfo.Take(10).ToArrayAsync(token);
+
+            ImagesInfo.RemoveRange(images);
+
+            saved += await SaveChangesAsync(token);
+        }
+
+        var emailEntity = await EmailStates.FirstOrDefaultAsync(e => e.Email == email);
+
+        emailEntity.MessagesCount = 0;
+        emailEntity.Size = 0;
+
+        saved += await SaveChangesAsync(token);
+
+        return saved;
+    }
 }
