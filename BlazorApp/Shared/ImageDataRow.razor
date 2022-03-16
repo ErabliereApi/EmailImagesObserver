@@ -3,8 +3,6 @@
 <tr id="imageinfo-@imageInfo.Id">
     <td class="">@imageInfo.Id</td>
     <td>@FormatDateTime(imageInfo.DateEmail)</td>
-    <td class="">@imageInfo.ImageAnalysis?.Color.DominantColors.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-    <td class="">@imageInfo.ImageAnalysis?.Categories.Select(a => $"{a.Name} ({a.Score * 100}%)").Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td class="">@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td class="">@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>
