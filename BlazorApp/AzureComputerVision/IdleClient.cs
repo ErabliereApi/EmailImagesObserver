@@ -30,6 +30,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly IConfiguration _config;
     private readonly ILogger<IdleClient> _logger;
     private EmailStates? _emailStateDb;
+    private long? _uniqueId;
 
     /// <summary>
     /// Create a IdleClient base on login config and a base directory 
@@ -88,7 +89,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         try
         {
             await ReconnectAsync();
-            await FetchMessageSummariesAsync(print: false, analyseImage: AnalyseImagesBaseOnDates, token);
+            await FetchMessageSummariesAsync(print: false, analyseImage: CheckConfigDateAndThenUniqueId, token);
         }
         catch (OperationCanceledException)
         {
@@ -128,13 +129,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         await _imapClient.DisconnectAsync(true);
     }
 
-    private bool AnalyseImagesBaseOnDates(IMessageSummary message)
+    private async Task<bool> CheckConfigDateAndThenUniqueId(IMessageSummary message)
     {
         var firstCheck = message.InternalDate >= _config.GetValue<DateTimeOffset>("StartDate");
 
         if (firstCheck)
         {
-            return message.InternalDate >= _startDate;
+            return !await _context.ImagesInfo.AnyAsync(i => i.UniqueId == message.UniqueId.Id);
         }
 
         return firstCheck;
@@ -176,7 +177,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (messagesArrived)
                 {
-                    await FetchMessageSummariesAsync(print: true, analyseImage: AnalyseImagesBaseOnDates, CancellationToken.None);
+                    await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, CancellationToken.None);
                     messagesArrived = false;
                 }
             }
@@ -202,16 +203,24 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     /// <param name="print">Print in console few information on new message fetched</param>
     /// <param name="analyseImage">A function that recieve the message uniqueId and indicate if the message need to be analysed</param>
-    async Task FetchMessageSummariesAsync(bool print, Func<IMessageSummary, bool> analyseImage, CancellationToken token)
+    async Task FetchMessageSummariesAsync(bool print, Func<IMessageSummary, Task<bool>> analyseImage, CancellationToken token)
     {
         IList<IMessageSummary>? fetched;
         do
         {
             try
             {
-                _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync();
+                _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync(token);
 
-                _startDate = (await _context.ImagesInfo.OrderByDescending(i => i.DateEmail).FirstOrDefaultAsync(token))?.DateEmail?.DateTime ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+                if (await _context.ImagesInfo.AnyAsync())
+                {
+                    _uniqueId = await _context.ImagesInfo.OrderByDescending(i => i.UniqueId).Select(i => i.UniqueId).FirstOrDefaultAsync(token);
+                }
+
+                if (_uniqueId == null)
+                {
+                    _startDate = _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+                }
 
                 if (_emailStateDb == null)
                 {
@@ -228,11 +237,22 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _emailStateDb = entry.Entity;
                 }
 
-                var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.ToUniversalTime().DateTime), token);
+                if (_uniqueId.HasValue)
+                {
+                    fetched = await SentFolder.FetchAsync(MessageCount - 1, -1, MessageSummaryItems.Full |
+                                                                                MessageSummaryItems.UniqueId |
+                                                                                MessageSummaryItems.BodyStructure, token);
+                }
+                else
+                {
+                    var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), token);
 
-                fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
-                                                              MessageSummaryItems.UniqueId |
-                                                              MessageSummaryItems.BodyStructure, _tokenSource.Token);
+                    fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
+                                                                  MessageSummaryItems.UniqueId |
+                                                                  MessageSummaryItems.BodyStructure, _tokenSource.Token);
+                }
+
+                
                 break;
             }
             catch (ImapProtocolException)
@@ -252,7 +272,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             if (print)
                 _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder, message.Envelope.Subject);
 
-            if (analyseImage(message))
+            if (await analyseImage(message))
             {
                 if (_emailStateDb != null)
                 {
@@ -305,7 +325,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     Name = fileName,
                     DateAjout = DateTimeOffset.Now,
-                    DateEmail = item.InternalDate ?? item.Date
+                    DateEmail = item.InternalDate ?? item.Date,
+                    UniqueId = item.UniqueId.Id
                 };
 
                 if (item.InternalDate.HasValue)
@@ -360,7 +381,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     Name = fileName,
                     DateAjout = DateTimeOffset.Now,
-                    DateEmail = item.InternalDate ?? item.Date
+                    DateEmail = item.InternalDate ?? item.Date,
+                    UniqueId = item.UniqueId.Id
                 };
 
                 if (item.InternalDate.HasValue)
@@ -476,7 +498,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            _logger.LogInformation("{0}: message #{1} has been expunged.", folder, e.Index);
+            _logger.LogInformation("{folder}: message #{Index} has been expunged.", folder, e.Index);
         }
     }
 
@@ -484,7 +506,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var folder = sender as ImapFolder;
 
-        _logger.LogInformation("{0}: flags have changed for message #{1} ({2}).", folder, e.Index, e.Flags);
+        _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder, e.Index, e.Flags);
     }
 
     private async Task ParseAndSaveImageAsync(string imageString, ImageInfo imageInfo, CancellationToken token)

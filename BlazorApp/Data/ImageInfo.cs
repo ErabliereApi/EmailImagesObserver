@@ -6,9 +6,12 @@ using System.Text.Json.Serialization;
 namespace BlazorApp.Data;
 
 [Index(nameof(DateAjout), IsUnique = false, Name = "Index_DateAjout")]
+[Index(nameof(UniqueId), IsUnique = true, Name = "Index_UniqueId")]
 public class ImageInfo : IComparable<ImageInfo>
 {
     public long Id { get; set; }
+
+    public uint UniqueId { get; set; }
 
     public string? Name { get; set; }
 
