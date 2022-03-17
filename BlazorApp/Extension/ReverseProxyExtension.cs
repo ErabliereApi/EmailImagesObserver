@@ -1,4 +1,6 @@
-﻿namespace BlazorApp.Extension;
+﻿using BlazorApp.Services;
+
+namespace BlazorApp.Extension;
 
 public static class ReverseProxyExtension
 {
@@ -39,6 +41,36 @@ public static class ReverseProxyExtension
             });
         }
 
+        if (AddAuthentificationExtension.IsAzureADAuth(config))
+        {
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                if (context.Response.StatusCode == 302 && 
+                    context.Request.Path.Equals(config["AzureAD:CallbackPath"]))
+                {
+                    try
+                    {
+                        var urlService = context.RequestServices.GetRequiredService<UrlService>();
+
+                        context.Response.Headers["location"] = urlService.Url(context.Response.Headers["location"]);
+                    }
+                    catch (Exception e)
+                    {
+                        var logger = context.RequestServices.GetService<ILogger<UrlServiceForAADSigninRewrite>>();
+
+                        if (logger is not null)
+                        {
+                            logger.LogCritical(e, e.Message);
+                        }
+                    }
+                }
+            });
+        }
+
         return app;
     }
 }
+
+public class UrlServiceForAADSigninRewrite { }
