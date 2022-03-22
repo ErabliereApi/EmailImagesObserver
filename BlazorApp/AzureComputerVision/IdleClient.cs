@@ -21,7 +21,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly CancellationTokenSource _tokenSource;
     private CancellationTokenSource? done;
     private bool messagesArrived;
-    private readonly ImapClient _imapClient;
+    private readonly IImapClient _imapClient;
     private readonly LoginInfo _loginInfo;
     private readonly ConcurrentDictionary<Guid, IObserver<ImageInfo>> _observers;
     private readonly IServiceScope _scoped;
@@ -36,7 +36,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// Create a IdleClient base on login config and a base directory 
     /// for store data
     /// </summary>
-    public IdleClient(IOptions<LoginInfo> loginInfo, IServiceProvider provider, IConfiguration config, ImapClient imapClient, ILogger<IdleClient> logger)
+    public IdleClient(IOptions<LoginInfo> loginInfo, 
+                      IServiceProvider provider, 
+                      IConfiguration config, 
+                      IImapClient imapClient, 
+                      ILogger<IdleClient> logger)
     {
         _loginInfo = loginInfo.Value;
         if (_loginInfo.EmailLogin == null) throw new ArgumentNullException("config.EmailLogin");

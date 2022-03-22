@@ -12,7 +12,19 @@
     </div>
 
     <div>
-        <button class="btn btn-danger" @onclick="ClearTable">Clear</button>
+        <button class="btn btn-danger" @onclick="ClearTableAsync">Clear</button>
+    </div>
+
+    <hr />
+
+    <h4>Recount images</h4>
+
+    <div>
+        <h5>@SavedCount Imges</h5>
+    </div>
+
+    <div>
+        <button class="btn btn-success" @onclick="RecountAsync">Recount</button>
     </div>
 </div>
 
@@ -22,15 +34,32 @@
 
     public int Count { get; set; }
 
+    public int SavedCount { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         Count = await Context.ImagesInfo.CountAsync();
+        SavedCount = (await Context.EmailStates.FirstOrDefaultAsync(e => e.Email == Config["LoginInfo:EmailLogin"]))?.MessagesCount ?? 0;
     }
 
-    private async Task ClearTable()
+    private async Task ClearTableAsync()
     {
         await Context.ClearImagesAsync(Config["LoginInfo:EmailLogin"]);
 
         Count = await Context.ImagesInfo.CountAsync();
+    }
+
+    private async Task RecountAsync()
+    {
+        var emailstate = await Context.EmailStates.FirstOrDefaultAsync(e => e.Email == Config["LoginInfo:EmailLogin"]);
+
+        if (emailstate != null)
+        {
+            emailstate.MessagesCount = await Context.ImagesInfo.CountAsync();
+
+            await Context.SaveChangesAsync();
+
+            SavedCount = emailstate.MessagesCount;
+        }
     }
 }

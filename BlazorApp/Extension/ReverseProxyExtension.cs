@@ -62,7 +62,7 @@ public static class ReverseProxyExtension
 
                         if (logger is not null)
                         {
-                            logger.LogCritical(e, e.Message);
+                            logger.LogCritical(e, "{Exception}", e);
                         }
                     }
                 }

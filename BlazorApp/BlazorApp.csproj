@@ -12,6 +12,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="6.0.3" />
 		<PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="6.0.3" />
 		<PackageReference Include="Microsoft.Azure.CognitiveServices.Vision.ComputerVision" Version="7.0.1" />
+		<PackageReference Include="Microsoft.Diagnostics.Runtime" Version="2.0.226801" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.3">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

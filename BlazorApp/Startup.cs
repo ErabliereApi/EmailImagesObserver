@@ -50,12 +50,8 @@ public class Startup
         services.AddSession();
 
         /// IdleClient
-        services.AddDataProtection()
-                .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Constant.AppName)))
-                .SetApplicationName(Constant.AppName);
-        services.AddSingleton<LocalDataProtection>();
         services.AddSingleton<IdleClient>();
-        services.AddSingleton(sp => new ImapClient(sp.GetRequiredService<IProtocolLogger>()));
+        services.AddSingleton<IImapClient>(sp => new ImapClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IProtocolLogger>(sp =>
         {
             if (HostEnvironment.IsDevelopment())
