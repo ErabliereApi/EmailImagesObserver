@@ -17,8 +17,7 @@ try
                        webBuilder.UseStartup<Startup>();
                    })
                    .Build()
-                   .WithIdleClient()
-                   .WithHeapInspector();
+                   .WithIdleClient();
 
     host.Run();
 }
