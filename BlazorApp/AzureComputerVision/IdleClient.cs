@@ -278,15 +278,6 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
             if (await analyseImage(message))
             {
-                if (_emailStateDb != null)
-                {
-                    _emailStateDb.MessagesCount++;
-
-                    _context.Update(_emailStateDb);
-
-                    await _context.SaveChangesAsync(token);
-                }
-
                 await MaybeAnalyseImagesAsync(message, message.Attachments, token);
             }
                 
@@ -353,6 +344,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
                 await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers);
+
+                if (_emailStateDb != null)
+                {
+                    _emailStateDb.MessagesCount++;
+
+                    _context.Update(_emailStateDb);
+
+                    await _context.SaveChangesAsync(token);
+                }
             }
 
             return;
@@ -420,6 +420,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
                 await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
+
+                if (_emailStateDb != null)
+                {
+                    _emailStateDb.MessagesCount++;
+
+                    _context.Update(_emailStateDb);
+
+                    await _context.SaveChangesAsync(token);
+                }
             }
         }
     }

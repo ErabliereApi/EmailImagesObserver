@@ -20,7 +20,7 @@ namespace BlazorApp.Pages
         private ImageInfoService ImageInfoService { get; set; }
 
         [Inject]
-        private IdleClient idleClient { get; set; }
+        private IdleClient IdleClient { get; set; }
 #nullable enable
 
         private SortedSet<Data.ImageInfo>? imageInfo;
@@ -45,7 +45,7 @@ namespace BlazorApp.Pages
                 StateHasChanged();
             }
 
-            idleClient.Subscribe(this);
+            IdleClient.Subscribe(this);
         }
 
         protected async Task LoadNext()
@@ -62,11 +62,11 @@ namespace BlazorApp.Pages
             imageInfo = newList;
         }
 
-        protected void ConfirmDelete(long id, string title)
+        protected async Task ConfirmDelete(long id, string title)
         {
             DeleteId = id;
 
-            JS.InvokeAsync<bool>("confirmDelete", title);
+            _ = await JS.InvokeAsync<bool>("confirmDelete", title);
         }
 
         protected async Task DeleteImageInfo()
@@ -99,7 +99,7 @@ namespace BlazorApp.Pages
 
         public void OnError(Exception error)
         {
-            Logger.LogError(error, error.Message);
+            Logger.LogError(error, "{Message}", error.Message);
         }
 
         public void OnNext(Data.ImageInfo value)
@@ -108,13 +108,14 @@ namespace BlazorApp.Pages
             {
                 if (SearchTerms == null && skip == 0)
                 {
-                    var list = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>());
-
-                    list.Add(value);
+                    var list = new SortedSet<Data.ImageInfo>(imageInfo?.AsEnumerable() ?? Array.Empty<Data.ImageInfo>())
+                    {
+                        value
+                    };
 
                     imageInfo = list;
 
-                    Console.Out.WriteLine("[OnNext] Calling StateHasChanged");
+                    Logger.LogInformation("[OnNext] Calling StateHasChanged");
 
                     StateHasChanged();
                 }
@@ -123,7 +124,8 @@ namespace BlazorApp.Pages
 
         public void Dispose()
         {
-            idleClient.Unsubscribe(this);
+            IdleClient.Unsubscribe(this);
+            GC.SuppressFinalize(this);
         }
     }
 }

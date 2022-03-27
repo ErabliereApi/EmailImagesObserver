@@ -1,6 +1,5 @@
 using BlazorApp.Services;
 using BlazorApp.AzureComputerVision;
-using Microsoft.AspNetCore.DataProtection;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using MailKit.Net.Imap;

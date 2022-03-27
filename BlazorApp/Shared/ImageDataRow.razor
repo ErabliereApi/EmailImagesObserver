@@ -6,13 +6,13 @@
     <td class="">@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td class="">@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>
-        <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo.Id)')" />
+        <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo?.Id)')" />
     </td>
     <td>
-       <NavLink class="btn btn-primary" href="@urlService.Url($"/imageanalysisdetails/{imageInfo.Id}")">
+       <NavLink class="btn btn-primary" href="@urlService.Url($"/imageanalysisdetails/{imageInfo?.Id}")">
            Details
        </NavLink>
-       <button @onclick="@(() => ConfirmDelete?.Invoke(id, title))" class="btn btn-danger">Delete</button>
+       <button @onclick="@(async () => await ConfirmDelete.Invoke(id, title))" class="btn btn-danger">Delete</button>
     </td>
 </tr>
 
@@ -24,7 +24,7 @@
     public Data.ImageInfo imageInfo { get; set; } = new Data.NullImageInfo();
 
     [Parameter]
-    public Action<long, string>? ConfirmDelete { get; set; }
+    public Func<long, string, Task> ConfirmDelete { get; set; } = (a, b) => Task.CompletedTask;
 
     public string FormatDateTime(DateTimeOffset? date)
     {

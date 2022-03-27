@@ -79,17 +79,17 @@ else
         }
     }
 
-    private DateTime startTime;
     private TimeSpan? latency;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            startTime = DateTime.UtcNow;
+            var startTime = System.Diagnostics.Stopwatch.StartNew();
             var _ = await JS.InvokeAsync<string>("toString");
-            latency = DateTime.UtcNow - startTime;
+            latency = TimeSpan.FromMilliseconds(startTime.ElapsedMilliseconds);
             StateHasChanged();
+            startTime.Stop();
         }
     }
 }
