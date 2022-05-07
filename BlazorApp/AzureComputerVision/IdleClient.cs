@@ -219,14 +219,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
             }
 
-            _callMemory.Add(new CallShortMemoryContext
-            {
-                Date = DateTime.Now
-            });
-
             var analyse = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0 < rateLimiter.Value;
 
-            _callMemory[^1].WasDiscarded = !analyse;
+            _callMemory.Add(new CallShortMemoryContext
+            {
+                Date = DateTime.Now,
+                WasDiscarded = !analyse
+            });
 
             return analyse;
         }
