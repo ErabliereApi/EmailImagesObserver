@@ -183,7 +183,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     if (CheckDiscardingRateLimiter())
                     {
-                        await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, CancellationToken.None);
+                        await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, token);
                         messagesArrived = false;
                     }
                     else
@@ -207,7 +207,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var rateLimiter = _config.GetValue<double?>("DiscardWhenTPMGreaterThan");
 
-        if (rateLimiter.HasValue)
+        if (rateLimiter.HasValue && rateLimiter.Value > 0.0)
         {
             var endMemory = DateTime.Now - TimeSpan.FromMinutes(10);
 
