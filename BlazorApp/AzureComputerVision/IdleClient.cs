@@ -122,7 +122,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         // keep track of flag changes
         sentFolder.MessageFlagsChanged += OnMessageFlagsChanged;
 
-        await IdleAsync();
+        await IdleAsync(token);
 
         _logger.LogInformation("Remove events");
         sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
@@ -171,7 +171,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         _scoped?.Dispose();
     }
 
-    async Task IdleAsync()
+    public async Task IdleAsync(CancellationToken token)
     {
         do
         {
@@ -181,8 +181,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (messagesArrived)
                 {
-                    await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, CancellationToken.None);
-                    messagesArrived = false;
+                    if (CheckDiscardingRateLimiter())
+                    {
+                        await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, CancellationToken.None);
+                        messagesArrived = false;
+                    }
+                    else
+                    {
+                        var rate = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0;
+
+                        _logger.LogWarning("DiscardingRateLimiter apply. Rate is {rate}", rate);
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -190,6 +199,39 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 break;
             }
         } while (!_tokenSource.IsCancellationRequested);
+    }
+
+    private List<CallShortMemoryContext> _callMemory = new List<CallShortMemoryContext>();
+
+    private bool CheckDiscardingRateLimiter()
+    {
+        var rateLimiter = _config.GetValue<double?>("DiscardWhenTPMGreaterThan");
+
+        if (rateLimiter.HasValue)
+        {
+            var endMemory = DateTime.Now - TimeSpan.FromMinutes(10);
+
+            for (int i = 0; i < _callMemory.Count; i++)
+            {
+                if (_callMemory[i].Date < endMemory)
+                {
+                    _callMemory.RemoveAt(i--);
+                }
+            }
+
+            _callMemory.Add(new CallShortMemoryContext
+            {
+                Date = DateTime.Now
+            });
+
+            var analyse = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0 < rateLimiter.Value;
+
+            _callMemory[^1].WasDiscarded = !analyse;
+
+            return analyse;
+        }
+
+        return true;
     }
 
     async Task ReconnectAsync()
