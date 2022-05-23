@@ -21,6 +21,12 @@ This app connect to an imap server and listen to new message sent. When there is
 5. Imap server address
 6. Imap server port
 
+## Deploy the app
+
+There is a docker image availlable on dockerhub. Here is an example of deployment behind reverse proxy that use many configuration.
+
+https://github.com/freddycoder/AzureAKS-TLS/blob/main/emailimagesobserver/emailimagesobserver-deployment.yaml
+
 ## Additionnal documentation
 
 Mailkit: 
