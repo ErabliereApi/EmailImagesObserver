@@ -8,6 +8,7 @@ using System.Text;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using BlazorApp.Autorization;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -29,6 +30,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly AzureImageMLApi _azureImageML;
     private readonly IConfiguration _config;
     private readonly ILogger<IdleClient> _logger;
+    private readonly OAuthImapOffice365 _oauthImap;
     private EmailStates? _emailStateDb;
     private long? _uniqueId;
 
@@ -40,7 +42,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                       IServiceProvider provider, 
                       IConfiguration config, 
                       IImapClient imapClient, 
-                      ILogger<IdleClient> logger)
+                      ILogger<IdleClient> logger,
+                      OAuthImapOffice365 oAuthImap)
     {
         _loginInfo = loginInfo.Value;
         if (_loginInfo.EmailLogin == null) throw new ArgumentNullException("config.EmailLogin");
@@ -55,6 +58,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         _azureImageML = _scoped.ServiceProvider.GetRequiredService<AzureImageMLApi>();
         _config = config;
         _logger = logger;
+        _oauthImap = oAuthImap;
     }
 
     private IMailFolder? _sentFolder;
@@ -240,7 +244,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (!_imapClient.IsAuthenticated)
         {
-            await _imapClient.AuthenticateAsync(_loginInfo.EmailLogin, _loginInfo.EmailPassword, _tokenSource.Token);
+            await _imapClient.AuthenticateAsync(await _oauthImap.GetAuthOptions(), _tokenSource.Token);
 
             await SentFolder.OpenAsync(FolderAccess.ReadOnly, _tokenSource.Token);
         }

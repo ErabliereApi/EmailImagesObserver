@@ -8,6 +8,7 @@ using BlazorApp.Extension;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web.UI;
+using BlazorApp.Autorization;
 
 namespace BlazorApp;
 
@@ -49,6 +50,8 @@ public class Startup
         services.AddSession();
 
         /// IdleClient
+        services.AddHttpClient();
+        services.AddSingleton<OAuthImapOffice365>();
         services.AddSingleton<IdleClient>();
         services.AddSingleton<IImapClient>(sp => new ImapClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IProtocolLogger>(sp =>
@@ -113,7 +116,7 @@ public class Startup
 }
 
         app.UseForwardedHeadersRulesIfEnabled(logger, Configuration);
-
+        
         app.Use(async (context, next) =>
         {
             context.Response.Headers.Add("X-Frame-Options", ("X-FRAME-OPTIONS") ?? "DENY");
