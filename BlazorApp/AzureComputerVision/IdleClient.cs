@@ -69,9 +69,19 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             if (_sentFolder is not null) return _sentFolder;
 
-            var personal = _imapClient.GetFolder(_imapClient.PersonalNamespaces[0]);
+            if (_loginInfo.ImapServer?.Contains("gmail", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                // Gmail uses the [Gmail]/Sent Mail folder
+                _sentFolder = _imapClient.GetFolder(SpecialFolder.Sent);
 
-            _sentFolder = personal.GetSubfolder("Sent Items", _tokenSource.Token);
+                Console.WriteLine(_sentFolder);
+            }
+            else
+            {
+                var personal = _imapClient.GetFolder(_imapClient.PersonalNamespaces[0]);
+
+                _sentFolder = personal.GetSubfolder("Sent Items", _tokenSource.Token);
+            }
 
             if (_sentFolder is null)
                 throw new InvalidOperationException($"Sent folder cannot be found. The program tries those values: 'Sent Items'");
