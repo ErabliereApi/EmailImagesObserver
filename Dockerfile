@@ -15,6 +15,7 @@ FROM build AS publish
 RUN dotnet publish "BlazorApp.csproj" -c Release -o /app/publish
 
 ENV ASPNETCORE_HTTP_PORTS=80
+ENV ASPNETCORE_URLS=http://*:80
 
 FROM base AS final
 WORKDIR /app
