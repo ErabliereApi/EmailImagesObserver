@@ -30,9 +30,11 @@ public class HostIdleClientExitManagment : IHost
     {
         var client = Services.GetRequiredService<IdleClient>();
 
+        var host = _host.StartAsync(cancellationToken);
+
         _idleTask = client.RunAsync(cancellationToken);
 
-        return _host.StartAsync(cancellationToken);
+        return host;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)

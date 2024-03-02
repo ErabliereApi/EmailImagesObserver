@@ -3,6 +3,8 @@ using BlazorApp.HostDecorator;
 
 Console.Out.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
 
+Console.WriteLine(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+
 try
 {
     var host = Host.CreateDefaultBuilder(args)
