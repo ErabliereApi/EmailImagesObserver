@@ -5,6 +5,7 @@
 @inject IConfiguration config
 @inject Data.BlazorDbContext context
 @inject IJSRuntime JS
+@inject TimezoneService TimezoneService
 
 <h1>Email Images Observer!</h1>
 
@@ -47,6 +48,10 @@ else
 {
     <span>@(latency.Value.TotalMilliseconds)ms</span>
 }
+
+<h2>Timezone</h2>
+
+<span>@TimezoneService.TimeZoneInfo.DisplayName</span>
 
 @code 
 {

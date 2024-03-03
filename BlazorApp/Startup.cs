@@ -90,6 +90,9 @@ public class Startup
                 options.UseInMemoryDatabase("InMemory");
             }
         });
+
+        // Timezone
+        services.AddScoped<TimezoneService>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)

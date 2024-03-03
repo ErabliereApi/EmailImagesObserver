@@ -1,4 +1,5 @@
 ﻿@inject UrlService urlService
+@inject TimezoneService TimezoneService
 
 <tr id="imageinfo-@imageInfo.Id">
     <td class="">@imageInfo.Id</td>
@@ -28,18 +29,6 @@
 
     public string FormatDateTime(DateTimeOffset? date)
     {
-        if (date is null)
-        {
-            return "Aucune date disponible";
-        }
-
-        var now = DateTimeOffset.Now;
-
-        if (date.HasValue && date.Value.Day == now.Day)
-        {
-            return date.Value.ToString("HH:mm:ss");
-        }
-
-        return date.Value.ToString("yyyy-MM-dd HH:mm:ss");
+        return TimezoneService.ToPrettyLocalDate(date);
     }
-} 
+}
