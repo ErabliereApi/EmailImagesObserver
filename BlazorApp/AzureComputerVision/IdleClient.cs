@@ -243,16 +243,34 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         return true;
     }
 
+    /// <summary>
+    /// Reconnect the client to the server and authenticate.
+    /// No need to pass the cancellation token because it use the _tokenSource from
+    /// the class instance.
+    /// </summary>
+    /// <returns></returns>
     async Task ReconnectAsync()
     {
-        if (!_imapClient.IsConnected)
+        if (!_imapClient.IsConnected) 
+        {
+            _logger.LogInformation("Connect to the imap server");
+
             await _imapClient.ConnectAsync(_loginInfo.ImapServer, _loginInfo.ImapPort, SecureSocketOptions.SslOnConnect, _tokenSource.Token);
+
+            _logger.LogInformation("Connection established.");
+        }
 
         if (!_imapClient.IsAuthenticated)
         {
+            _logger.LogInformation("Authenticate to the imap server");
+
             await _imapClient.AuthenticateAsync(_loginInfo.EmailLogin, _loginInfo.EmailPassword, _tokenSource.Token);
 
+            _logger.LogInformation("Authenticated. Open the SentFolder.");
+
             await SentFolder.OpenAsync(FolderAccess.ReadOnly, _tokenSource.Token);
+
+            _logger.LogInformation("SentFolder opened.");
         }
     }
 
@@ -267,9 +285,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             {
                 _emailStateDb = await _context.EmailStates.Where(s => s.Email == _loginInfo.EmailLogin).FirstOrDefaultAsync(token);
 
+                ImageInfo? imageInfo = null;
+
                 if (await _context.ImagesInfo.AnyAsync())
                 {
-                    _uniqueId = await _context.ImagesInfo.OrderByDescending(i => i.UniqueId).Select(i => i.UniqueId).FirstOrDefaultAsync(token);
+                    imageInfo = await _context.ImagesInfo
+                        .OrderByDescending(i => i.UniqueId)
+                        .FirstOrDefaultAsync(token);
+
+                    _uniqueId = imageInfo?.UniqueId;
                 }
 
                 if (_uniqueId == null)
@@ -294,29 +318,40 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (_uniqueId.HasValue)
                 {
+                    _logger.LogInformation("Fetch message since uniqueId: {uniqueId} datetime: {date}", _uniqueId, imageInfo?.DateEmail);
+
                     fetched = await SentFolder.FetchAsync(MessageCount - 1, -1, MessageSummaryItems.Full |
                                                                                 MessageSummaryItems.UniqueId |
                                                                                 MessageSummaryItems.BodyStructure, token);
+
+                    _logger.LogInformation("Fetched {fetched} messages", fetched.Count);
                 }
                 else
                 {
+                    _logger.LogInformation("Fetch message since startDate: {startDate}", _startDate);
+
                     var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), token);
 
                     fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
                                                                   MessageSummaryItems.UniqueId |
                                                                   MessageSummaryItems.BodyStructure, _tokenSource.Token);
-                }
 
+                    _logger.LogInformation("Fetched {fetched} messages", fetched.Count);
+                }
                 
                 break;
             }
-            catch (ImapProtocolException)
+            catch (ImapProtocolException imapEx)
             {
+                _logger.LogWarning(imapEx, imapEx.Message);
+
                 // protocol exceptions often result in the client getting disconnected
                 await ReconnectAsync();
             }
-            catch (IOException)
+            catch (IOException ioEx)
             {
+                _logger.LogWarning(ioEx, ioEx.Message);
+
                 // I/O exceptions always result in the client getting disconnected
                 await ReconnectAsync();
             }
