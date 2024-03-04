@@ -4,7 +4,7 @@
 <tr id="imageinfo-@imageInfo.Id">
     <td class="">@imageInfo.Id</td>
     <td>@FormatDateTime(imageInfo.DateEmail)</td>
-    <td class="">@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({a.Confidence * 100}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+    <td class="">@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td class="">@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
     <td>
         <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo?.Id)')" />
