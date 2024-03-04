@@ -527,6 +527,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             {
                 if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
                 {
+                    _logger.LogInformation("Idling...");
+
                     // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
                     // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
                     // about 10 minutes, so we'll only idle for 9 minutes.
@@ -543,6 +545,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else
                 {
+                    _logger.LogInformation("NOOPing...");
+
                     // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
                     // between each NOOP command.
                     await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
@@ -550,13 +554,16 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 break;
             }
-            catch (ImapProtocolException)
+            catch (ImapProtocolException ipEx)
             {
+                _logger.LogWarning(ipEx, ipEx.Message);
                 // protocol exceptions often result in the client getting disconnected
                 await ReconnectAsync();
             }
-            catch (IOException)
+            catch (IOException ioEx)
             {
+                _logger.LogWarning(ioEx, ioEx.Message);
+
                 // I/O exceptions always result in the client getting disconnected
                 await ReconnectAsync();
             }
