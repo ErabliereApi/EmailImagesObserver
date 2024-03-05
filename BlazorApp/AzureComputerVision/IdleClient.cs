@@ -382,20 +382,20 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
                                                            p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true))
             {
-                _logger.LogInformation(part.ToString());
-                _logger.LogInformation(part.GetType().ToString());
+                _logger.LogInformation("part: {part}", part.ToString());
+                _logger.LogInformation("part.Type: {partType}", part.GetType().ToString());
 
-                _logger.LogInformation(part.ContentDescription);
-                _logger.LogInformation(part.ContentDisposition?.ToString());
-                _logger.LogInformation(part.ContentId);
-                _logger.LogInformation(part.ContentLocation?.ToString());
-                _logger.LogInformation(part.ContentMd5);
-                _logger.LogInformation(part.ContentTransferEncoding);
-                _logger.LogInformation(part.ContentType?.ToString());
-                _logger.LogInformation(part.FileName);
-                _logger.LogInformation(part.IsAttachment.ToString());
-                _logger.LogInformation(part.Octets.ToString());
-                _logger.LogInformation(part.PartSpecifier);
+                _logger.LogInformation("part.Descirptionpart: {contentDescription}", part.ContentDescription);
+                _logger.LogInformation("part.ContentDisposition: {contentDisposition}", part.ContentDisposition?.ToString());
+                _logger.LogInformation("part.ContentId: {contentId}", part.ContentId);
+                _logger.LogInformation("part.ContentLocation: {contentLocation}", part.ContentLocation?.ToString());
+                _logger.LogInformation("part.ContentMd5: {contentMd5}", part.ContentMd5);
+                _logger.LogInformation("part.ContentTransferEncoding: {transfertEncoding}", part.ContentTransferEncoding);
+                _logger.LogInformation("part.ContentType: {contentType}", part.ContentType?.ToString());
+                _logger.LogInformation("part.FileName: {fileName}", part.FileName);
+                _logger.LogInformation("part.IsAttachment: {isAttachment}", part.IsAttachment.ToString());
+                _logger.LogInformation("part.Octets: {octets}", part.Octets.ToString());
+                _logger.LogInformation("part.PartSpecifier: {partSpecifier}", part.PartSpecifier);
 
                 // note: it's possible for this to be null, but most will specify a filename
                 var fileName = part.FileName;
@@ -446,17 +446,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (var attachment in attachments)
         {
-            _logger.LogInformation(attachment.ContentDescription);
-            _logger.LogInformation(attachment.ContentDisposition?.ToString());
-            _logger.LogInformation(attachment.ContentId);
-            _logger.LogInformation(attachment.ContentLocation?.ToString());
-            _logger.LogInformation(attachment.ContentMd5);
-            _logger.LogInformation(attachment.ContentTransferEncoding);
-            _logger.LogInformation(attachment.ContentType?.ToString());
-            _logger.LogInformation(attachment.FileName);
-            _logger.LogInformation(attachment.IsAttachment.ToString());
-            _logger.LogInformation(attachment.Octets.ToString());
-            _logger.LogInformation(attachment.PartSpecifier);
+            _logger.LogInformation("Attachment.ContentDescription: {contentDescription}", attachment.ContentDescription);
+            _logger.LogInformation("Attachment.ContentDisposition: {contentDisposition}", attachment.ContentDisposition?.ToString());
+            _logger.LogInformation("Attachment.ContentId: {contentId}", attachment.ContentId);
+            _logger.LogInformation("Attachment.ContentLocation: {contentLocation}", attachment.ContentLocation?.ToString());
+            _logger.LogInformation("Attachment.ContentMd5: {contentMd5}", attachment.ContentMd5);
+            _logger.LogInformation("Attachment.ContentTransfertEncoding: {contentTransfertEncoding}", attachment.ContentTransferEncoding);
+            _logger.LogInformation("Attachment.ContentType: {contentType}", attachment.ContentType?.ToString());
+            _logger.LogInformation("Attachment.FileName: {filename}", attachment.FileName);
+            _logger.LogInformation("Attachment.IsAttachement: {isAttachment}", attachment.IsAttachment.ToString());
+            _logger.LogInformation("Attachment.Octets: {octets}", attachment.Octets.ToString());
+            _logger.LogInformation("Attachment.PartSpecifier: {partSpecifier}", attachment.PartSpecifier);
 
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                 attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
@@ -556,13 +556,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             }
             catch (ImapProtocolException ipEx)
             {
-                _logger.LogWarning(ipEx, ipEx.Message);
+                _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
+                
                 // protocol exceptions often result in the client getting disconnected
                 await ReconnectAsync();
             }
             catch (IOException ioEx)
             {
-                _logger.LogWarning(ioEx, ioEx.Message);
+                _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
 
                 // I/O exceptions always result in the client getting disconnected
                 await ReconnectAsync();
