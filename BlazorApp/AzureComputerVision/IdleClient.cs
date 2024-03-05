@@ -561,59 +561,66 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     async Task WaitForNewMessagesAsync()
     {
-        try
+        while (!messagesArrived && (_done == null || !_done.IsCancellationRequested))
         {
-            if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
+            try
             {
-                _logger.LogInformation("WaitForNewMessagesAsync: Idling...");
-
-                // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
-                // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
-                // about 10 minutes, so we'll only idle for 9 minutes.
-                _done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
-                try
+                if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
                 {
-                    if (!SentFolder.IsOpen)
+                    _logger.LogInformation("WaitForNewMessagesAsync: Idling...");
+
+                    // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
+                    // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
+                    // about 10 minutes, so we'll only idle for 9 minutes.
+                    _done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
+                    try
                     {
-                        _logger.LogInformation("SendFolder was not open, now oppening the sentFolder");
+                        if (!SentFolder.IsOpen)
+                        {
+                            _logger.LogInformation("SendFolder was not open, now oppening the sentFolder");
 
-                        await SentFolder.OpenAsync(FolderAccess.ReadOnly, _tokenSource.Token);
+                            await SentFolder.OpenAsync(FolderAccess.ReadOnly, _tokenSource.Token);
 
-                        _logger.LogInformation($"SentFolder open. Done");
+                            _logger.LogInformation($"SentFolder open. Done");
+                        }
+
+                        await _imapClient.IdleAsync(_done.Token, _tokenSource.Token);
                     }
-
-                    await _imapClient.IdleAsync(_done.Token, _tokenSource.Token);
+                    catch (Exception e)
+                    {
+                        _logger.LogInformation(e, "Exception when idling: {message}", e.Message);
+                    }
+                    finally
+                    {
+                        _logger.LogInformation($"{nameof(WaitForNewMessagesAsync)} Finish Idling.");
+                        _done.Dispose();
+                        _done = null;
+                    }
                 }
-                finally
+                else
                 {
-                    _logger.LogInformation($"{nameof(WaitForNewMessagesAsync)} Finish Idling.");
-                    _done.Dispose();
-                    _done = null;
+                    _logger.LogInformation("NOOPing...");
+
+                    // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
+                    // between each NOOP command.
+                    await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
+                    await _imapClient.NoOpAsync(_tokenSource.Token);
                 }
             }
-            else
+            catch (ImapProtocolException ipEx)
             {
-                _logger.LogInformation("NOOPing...");
+                _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
 
-                // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
-                // between each NOOP command.
-                await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
-                await _imapClient.NoOpAsync(_tokenSource.Token);
+                // protocol exceptions often result in the client getting disconnected
+                await ReconnectAsync();
             }
-        }
-        catch (ImapProtocolException ipEx)
-        {
-            _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
+            catch (IOException ioEx)
+            {
+                _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
 
-            // protocol exceptions often result in the client getting disconnected
-            await ReconnectAsync();
-        }
-        catch (IOException ioEx)
-        {
-            _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
-
-            // I/O exceptions always result in the client getting disconnected
-            await ReconnectAsync();
+                // I/O exceptions always result in the client getting disconnected
+                await ReconnectAsync();
+            }
         }
     }
 
@@ -664,9 +671,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     void OnMessageFlagsChanged(object? sender, MessageFlagsChangedEventArgs e)
     {
-        var folder = sender as ImapFolder;
+        try
+        {
+            var folder = sender as ImapFolder;
 
-        _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder, e.Index, e.Flags);
+            _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder, e.Index, e.Flags);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"OnMessageFlgsChanged: {ex}");
+            Console.Error.WriteLine("Last error should not have crash the program.");
+        }
     }
 
     private async Task ParseAndSaveImageAsync(string imageString, ImageInfo imageInfo, CancellationToken token)
