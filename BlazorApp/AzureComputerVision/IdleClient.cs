@@ -8,6 +8,7 @@ using System.Text;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -36,10 +37,10 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// Create a IdleClient base on login config and a base directory 
     /// for store data
     /// </summary>
-    public IdleClient(IOptions<LoginInfo> loginInfo, 
-                      IServiceProvider provider, 
-                      IConfiguration config, 
-                      IImapClient imapClient, 
+    public IdleClient(IOptions<LoginInfo> loginInfo,
+                      IServiceProvider provider,
+                      IConfiguration config,
+                      IImapClient imapClient,
                       ILogger<IdleClient> logger)
     {
         _loginInfo = loginInfo.Value;
@@ -99,20 +100,23 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// </summary>
     public async Task RunAsync(CancellationToken token)
     {
+        _logger.LogInformation("RunAsync");
+
         // connect to the IMAP server and get our initial list of messages
         try
         {
             await ReconnectAsync();
             await FetchMessageSummariesAsync(print: false, analyseImage: CheckConfigDateAndThenUniqueId, token);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ocEx)
         {
+            _logger.LogError(ocEx, "RunAsync Exception: {message}", ocEx.Message);
             await _imapClient.DisconnectAsync(true);
             return;
         }
         catch (Exception e)
         {
-            _logger.LogError(e, e.Message);
+            _logger.LogCritical(e, "RunAsync Exception: {message}", e.Message);
             throw;
         }
 
@@ -132,14 +136,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         // keep track of flag changes
         sentFolder.MessageFlagsChanged += OnMessageFlagsChanged;
 
+        _logger.LogInformation("RunAsync: IdleAsync");
         await IdleAsync(token);
 
-        _logger.LogInformation("Remove events");
+        _logger.LogInformation("RunAsync: Remove events");
         sentFolder.MessageFlagsChanged -= OnMessageFlagsChanged;
         sentFolder.MessageExpunged -= OnMessageExpunged;
         sentFolder.CountChanged -= OnCountChanged;
 
-        _logger.LogInformation("Disconnect client");
+        _logger.LogInformation("RunAsync: Disconnect client");
         await _imapClient.DisconnectAsync(true);
     }
 
@@ -189,10 +194,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             {
                 await WaitForNewMessagesAsync();
 
+                _logger.LogInformation("IdleAsync: messagesArrived: {messagesArrived}", messagesArrived);
+
                 if (messagesArrived)
                 {
                     if (CheckDiscardingRateLimiter())
                     {
+                        _logger.LogInformation("FetchMessageSummariesAsync");
                         await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, token);
                         messagesArrived = false;
                     }
@@ -251,7 +259,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// <returns></returns>
     async Task ReconnectAsync()
     {
-        if (!_imapClient.IsConnected) 
+        if (!_imapClient.IsConnected)
         {
             _logger.LogInformation("Connect to the imap server");
 
@@ -278,6 +286,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// <param name="analyseImage">A function that recieve the message uniqueId and indicate if the message need to be analysed</param>
     async Task FetchMessageSummariesAsync(bool print, Func<IMessageSummary, Task<bool>> analyseImage, CancellationToken token)
     {
+        _logger.LogInformation("FetchMessageSummariesAsync");
+
         IList<IMessageSummary>? fetched;
         do
         {
@@ -287,7 +297,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 ImageInfo? imageInfo = null;
 
-                if (await _context.ImagesInfo.AnyAsync())
+                if (await _context.ImagesInfo.AnyAsync(token))
                 {
                     imageInfo = await _context.ImagesInfo
                         .OrderByDescending(i => i.DateEmail)
@@ -295,8 +305,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _uniqueId = imageInfo?.UniqueId;
 
-                    _startDate = imageInfo?.DateEmail.GetValueOrDefault(_config.GetValue<DateTimeOffset>("StartDate").DateTime) 
-                        ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+                    _startDate = imageInfo?.DateEmail ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
                 }
 
                 if (_uniqueId == null)
@@ -319,7 +328,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _emailStateDb = entry.Entity;
                 }
 
-                if (_uniqueId.HasValue && 
+                if (_uniqueId.HasValue &&
                     _emailStateDb.Email != null &&
                     _emailStateDb.Email.Contains("gmail", StringComparison.OrdinalIgnoreCase) == false)
                 {
@@ -343,7 +352,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _logger.LogInformation("Fetched {fetched} messages", fetched.Count);
                 }
-                
+
                 break;
             }
             catch (ImapProtocolException imapEx)
@@ -364,14 +373,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (IMessageSummary message in fetched)
         {
-            if (print)
+            if (print) 
+            {
                 _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder, message.Envelope.Subject);
+            }
 
             if (await analyseImage(message))
             {
                 await MaybeAnalyseImagesAsync(message, message.Attachments, token);
             }
-                
         }
     }
 
@@ -387,20 +397,19 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
                                                            p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true))
             {
-                _logger.LogInformation("part: {part}", part.ToString());
-                _logger.LogInformation("part.Type: {partType}", part.GetType().ToString());
-
-                _logger.LogInformation("part.Descirptionpart: {contentDescription}", part.ContentDescription);
-                _logger.LogInformation("part.ContentDisposition: {contentDisposition}", part.ContentDisposition?.ToString());
-                _logger.LogInformation("part.ContentId: {contentId}", part.ContentId);
-                _logger.LogInformation("part.ContentLocation: {contentLocation}", part.ContentLocation?.ToString());
-                _logger.LogInformation("part.ContentMd5: {contentMd5}", part.ContentMd5);
-                _logger.LogInformation("part.ContentTransferEncoding: {transfertEncoding}", part.ContentTransferEncoding);
-                _logger.LogInformation("part.ContentType: {contentType}", part.ContentType?.ToString());
-                _logger.LogInformation("part.FileName: {fileName}", part.FileName);
-                _logger.LogInformation("part.IsAttachment: {isAttachment}", part.IsAttachment.ToString());
-                _logger.LogInformation("part.Octets: {octets}", part.Octets.ToString());
-                _logger.LogInformation("part.PartSpecifier: {partSpecifier}", part.PartSpecifier);
+                _logger.LogDebug("part: {part}", part.ToString());
+                _logger.LogDebug("part.Type: {partType}", part.GetType().ToString());
+                _logger.LogDebug("part.Descirptionpart: {contentDescription}", part.ContentDescription);
+                _logger.LogDebug("part.ContentDisposition: {contentDisposition}", part.ContentDisposition?.ToString());
+                _logger.LogDebug("part.ContentId: {contentId}", part.ContentId);
+                _logger.LogDebug("part.ContentLocation: {contentLocation}", part.ContentLocation?.ToString());
+                _logger.LogDebug("part.ContentMd5: {contentMd5}", part.ContentMd5);
+                _logger.LogDebug("part.ContentTransferEncoding: {transfertEncoding}", part.ContentTransferEncoding);
+                _logger.LogDebug("part.ContentType: {contentType}", part.ContentType?.ToString());
+                _logger.LogDebug("part.FileName: {fileName}", part.FileName);
+                _logger.LogDebug("part.IsAttachment: {isAttachment}", part.IsAttachment.ToString());
+                _logger.LogDebug("part.Octets: {octets}", part.Octets.ToString());
+                _logger.LogDebug("part.PartSpecifier: {partSpecifier}", part.PartSpecifier);
 
                 // note: it's possible for this to be null, but most will specify a filename
                 var fileName = part.FileName;
@@ -415,6 +424,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     UniqueId = item.UniqueId.Id
                 };
 
+                _logger.LogInformation("New ImageInfo: {imageInfo}", JsonSerializer.Serialize(imageInfo));
+
                 if (item.InternalDate.HasValue)
                 {
                     _startDate = item.InternalDate.Value.DateTime;
@@ -423,6 +434,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     _startDate = item.Date.DateTime;
                 }
+
+                _logger.LogInformation("New Start date: {startDate}", _startDate);
 
                 using (var stream = new MemoryStream())
                 {
@@ -451,17 +464,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (var attachment in attachments)
         {
-            _logger.LogInformation("Attachment.ContentDescription: {contentDescription}", attachment.ContentDescription);
-            _logger.LogInformation("Attachment.ContentDisposition: {contentDisposition}", attachment.ContentDisposition?.ToString());
-            _logger.LogInformation("Attachment.ContentId: {contentId}", attachment.ContentId);
-            _logger.LogInformation("Attachment.ContentLocation: {contentLocation}", attachment.ContentLocation?.ToString());
-            _logger.LogInformation("Attachment.ContentMd5: {contentMd5}", attachment.ContentMd5);
-            _logger.LogInformation("Attachment.ContentTransfertEncoding: {contentTransfertEncoding}", attachment.ContentTransferEncoding);
-            _logger.LogInformation("Attachment.ContentType: {contentType}", attachment.ContentType?.ToString());
-            _logger.LogInformation("Attachment.FileName: {filename}", attachment.FileName);
-            _logger.LogInformation("Attachment.IsAttachement: {isAttachment}", attachment.IsAttachment.ToString());
-            _logger.LogInformation("Attachment.Octets: {octets}", attachment.Octets.ToString());
-            _logger.LogInformation("Attachment.PartSpecifier: {partSpecifier}", attachment.PartSpecifier);
+            _logger.LogDebug("Attachment.ContentDescription: {contentDescription}", attachment.ContentDescription);
+            _logger.LogDebug("Attachment.ContentDisposition: {contentDisposition}", attachment.ContentDisposition?.ToString());
+            _logger.LogDebug("Attachment.ContentId: {contentId}", attachment.ContentId);
+            _logger.LogDebug("Attachment.ContentLocation: {contentLocation}", attachment.ContentLocation?.ToString());
+            _logger.LogDebug("Attachment.ContentMd5: {contentMd5}", attachment.ContentMd5);
+            _logger.LogDebug("Attachment.ContentTransfertEncoding: {contentTransfertEncoding}", attachment.ContentTransferEncoding);
+            _logger.LogDebug("Attachment.ContentType: {contentType}", attachment.ContentType?.ToString());
+            _logger.LogDebug("Attachment.FileName: {filename}", attachment.FileName);
+            _logger.LogDebug("Attachment.IsAttachement: {isAttachment}", attachment.IsAttachment.ToString());
+            _logger.LogDebug("Attachment.Octets: {octets}", attachment.Octets.ToString());
+            _logger.LogDebug("Attachment.PartSpecifier: {partSpecifier}", attachment.PartSpecifier);
 
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                 attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
@@ -526,53 +539,49 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     async Task WaitForNewMessagesAsync()
     {
-        while (true)
+        try
         {
-            try
+            if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
             {
-                if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
+                _logger.LogInformation("Idling...");
+
+                // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
+                // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
+                // about 10 minutes, so we'll only idle for 9 minutes.
+                done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
+                try
                 {
-                    _logger.LogInformation("Idling...");
-
-                    // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
-                    // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
-                    // about 10 minutes, so we'll only idle for 9 minutes.
-                    done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
-                    try
-                    {
-                        await _imapClient.IdleAsync(done.Token, _tokenSource.Token);
-                    }
-                    finally
-                    {
-                        done.Dispose();
-                        done = null;
-                    }
+                    await _imapClient.IdleAsync(done.Token, _tokenSource.Token);
                 }
-                else
+                finally
                 {
-                    _logger.LogInformation("NOOPing...");
-
-                    // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
-                    // between each NOOP command.
-                    await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
-                    await _imapClient.NoOpAsync(_tokenSource.Token);
+                    done.Dispose();
+                    done = null;
                 }
-                break;
             }
-            catch (ImapProtocolException ipEx)
+            else
             {
-                _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
-                
-                // protocol exceptions often result in the client getting disconnected
-                await ReconnectAsync();
-            }
-            catch (IOException ioEx)
-            {
-                _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
+                _logger.LogInformation("NOOPing...");
 
-                // I/O exceptions always result in the client getting disconnected
-                await ReconnectAsync();
+                // Note: we don't want to spam the IMAP server with NOOP commands, so lets wait a minute
+                // between each NOOP command.
+                await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
+                await _imapClient.NoOpAsync(_tokenSource.Token);
             }
+        }
+        catch (ImapProtocolException ipEx)
+        {
+            _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
+
+            // protocol exceptions often result in the client getting disconnected
+            await ReconnectAsync();
+        }
+        catch (IOException ioEx)
+        {
+            _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
+
+            // I/O exceptions always result in the client getting disconnected
+            await ReconnectAsync();
         }
     }
 
@@ -586,18 +595,25 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             int arrived = folder.Count - _emailStateDb.MessagesCount;
 
             if (arrived > 1)
-                _logger.LogInformation("\t{arrived} new messages have arrived.", arrived);
+                _logger.LogInformation("\tOnCountChanged: {arrived} new messages have arrived.", arrived);
 
             else
-                _logger.LogInformation("\t1 new message has arrived.");
+                _logger.LogInformation("\tOnCountChanged: 1 new message has arrived.");
 
             messagesArrived = true;
             done?.Cancel();
+        }
+        else
+        {
+            _logger.LogWarning("\tOnCountChanged: {folder}: {Count} messages.", folder, folder?.Count);
+            _logger.LogWarning("\tOnCountChanged: Seems like nothing changed...");
         }
     }
 
     async void OnMessageExpunged(object? sender, MessageEventArgs e)
     {
+        _logger.LogInformation("OnMessageExpundeg: {folder}: message #{Index} has been expunged.", sender, e.Index);
+
         var folder = sender as ImapFolder;
 
         if (e.Index < _emailStateDb?.MessagesCount)
@@ -610,7 +626,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            _logger.LogInformation("{folder}: message #{Index} has been expunged.", folder, e.Index);
+            _logger.LogInformation("OnMessageExpundeg: {folder}: message #{Index} has been expunged.", folder, e.Index);
         }
     }
 

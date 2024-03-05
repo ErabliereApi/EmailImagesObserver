@@ -8,6 +8,7 @@ using BlazorApp.Extension;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web.UI;
+using Microsoft.Extensions.Logging.Console;
 
 namespace BlazorApp;
 
@@ -24,6 +25,22 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddLogging(config =>
+        {
+            config.AddConsole(options =>
+            {
+                options.FormatterName = "AvoidLongTextFormatter";
+            });
+        })
+        .Configure<ConsoleLoggerOptions>(options =>
+        {
+            options.FormatterName = "AvoidLongTextFormatter";
+        })
+        .Configure<ConsoleLoggerFormatterOptions>(options =>
+        {
+            options.FormatterNames.Add("AvoidLongTextFormatter", typeof(AvoidLongTextFormatter));
+        });
+
         services.AddForwardedHeadersIfEnable(Configuration);
 
         // Blazor app
@@ -141,4 +158,9 @@ public class Startup
             endpoints.MapFallbackToPage("/_Host");
         });
     }
+}
+
+public class ConsoleLoggerFormatterOptions
+{
+    public Dictionary<string, Type> FormatterNames { get; } = new Dictionary<string, Type>();
 }
