@@ -575,6 +575,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
                     try
                     {
+                        if (!_imapClient.IsConnected)
+                        {
+                            await ReconnectAsync();
+                        }
+
                         if (!SentFolder.IsOpen)
                         {
                             _logger.LogInformation("SendFolder was not open, now oppening the sentFolder");
@@ -588,7 +593,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     }
                     catch (Exception e)
                     {
-                        _logger.LogInformation(e, "Exception when idling: {message}", e.Message);
+                        _logger.LogWarning(e, "Exception when idling: {message}", e.Message);
                     }
                     finally
                     {
@@ -675,10 +680,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             var folder = sender as ImapFolder;
 
-            _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder, e.Index, e.Flags);
+            _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder?.ToString(), e.Index, e.Flags);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"{sender?.ToString()}: flags have changed for message #{e.Index} ({e.Flags}).");
             Console.Error.WriteLine($"OnMessageFlgsChanged: {ex}");
             Console.Error.WriteLine("Last error should not have crash the program.");
         }
