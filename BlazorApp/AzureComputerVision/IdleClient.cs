@@ -306,11 +306,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _uniqueId = imageInfo?.UniqueId;
 
                     _startDate = imageInfo?.DateEmail ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+
+                    _logger.LogInformation("Unique id: {uniqueId} _startdate: {date}", _uniqueId, _startDate);
                 }
 
                 if (_uniqueId == null)
                 {
                     _startDate = _config.GetValue<DateTimeOffset>("StartDate").DateTime;
+
+                    _logger.LogInformation("Unique id: {uniqueId} _startdate: {date}", _uniqueId, _startDate);
                 }
 
                 if (_emailStateDb == null)
@@ -326,6 +330,10 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
 
                     _emailStateDb = entry.Entity;
+                }
+                else 
+                {
+                    _logger.LogInformation("EmailStateDb is null");
                 }
 
                 if (_uniqueId.HasValue &&
@@ -428,11 +436,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (item.InternalDate.HasValue)
                 {
-                    _startDate = item.InternalDate.Value.DateTime;
+                    _startDate = item.InternalDate.Value;
                 }
                 else
                 {
-                    _startDate = item.Date.DateTime;
+                    _startDate = item.Date;
                 }
 
                 _logger.LogInformation("New Start date: {startDate}", _startDate);

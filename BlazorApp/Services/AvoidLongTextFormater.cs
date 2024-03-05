@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging.Console;
 
 public class AvoidLongTextFormatter : ConsoleFormatter
 {
-    private const int MaxMessageLength = 10000; // Set your maximum length here
+    private const int MaxMessageLength = 10000;
 
     public AvoidLongTextFormatter() : base("AvoidLongTextFormatter")
     {

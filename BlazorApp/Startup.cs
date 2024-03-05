@@ -27,6 +27,7 @@ public class Startup
     {
         services.AddLogging(config =>
         {
+            config.AddConsoleFormatter<AvoidLongTextFormatter, ConsoleFormatterOptions>();
             config.AddConsole(options =>
             {
                 options.FormatterName = "AvoidLongTextFormatter";
@@ -36,9 +37,9 @@ public class Startup
         {
             options.FormatterName = "AvoidLongTextFormatter";
         })
-        .Configure<ConsoleLoggerFormatterOptions>(options =>
+        .Configure<ConsoleFormatterOptions>(options => 
         {
-            options.FormatterNames.Add("AvoidLongTextFormatter", typeof(AvoidLongTextFormatter));
+            
         });
 
         services.AddForwardedHeadersIfEnable(Configuration);
@@ -158,9 +159,4 @@ public class Startup
             endpoints.MapFallbackToPage("/_Host");
         });
     }
-}
-
-public class ConsoleLoggerFormatterOptions
-{
-    public Dictionary<string, Type> FormatterNames { get; } = new Dictionary<string, Type>();
 }
