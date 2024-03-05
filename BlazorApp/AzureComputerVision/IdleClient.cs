@@ -203,7 +203,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     if (CheckDiscardingRateLimiter())
                     {
-                        _logger.LogInformation("FetchMessageSummariesAsync");
+                        _logger.LogInformation("IdleAsync: FetchMessageSummariesAsync");
                         await FetchMessageSummariesAsync(print: true, analyseImage: CheckConfigDateAndThenUniqueId, token);
                         messagesArrived = false;
                     }
@@ -289,7 +289,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     /// <param name="analyseImage">A function that recieve the message uniqueId and indicate if the message need to be analysed</param>
     async Task FetchMessageSummariesAsync(bool print, Func<IMessageSummary, Task<bool>> analyseImage, CancellationToken token)
     {
-        _logger.LogInformation("FetchMessageSummariesAsync");
+        _logger.LogInformation("FetchMessageSummariesAsync method begin");
 
         IList<IMessageSummary>? fetched;
         do
@@ -336,7 +336,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else 
                 {
-                    _logger.LogInformation("EmailStateDb is null o need to create a new.");
+                    _logger.LogInformation("EmailStateDb is null no need to create a new.");
                 }
 
                 if (_uniqueId.HasValue &&
@@ -355,7 +355,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 {
                     _logger.LogInformation("Fetch message since startDate: {startDate}", _startDate);
 
-                    var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), token);
+                    using var searchTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+                    var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), searchTokenSource.Token);
 
                     _logger.LogInformation("idList: {idList}", idList.Count);
 
@@ -390,6 +392,10 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 // I/O exceptions always result in the client getting disconnected
                 await ReconnectAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogCritical(e, $"Unmanaged exception in {nameof(FetchMessageSummariesAsync)} " + e.Message);
             }
         } while (true);
 
