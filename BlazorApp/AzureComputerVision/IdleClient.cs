@@ -583,7 +583,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     {
                         if (!_imapClient.IsConnected)
                         {
+                            _logger.LogInformation("_imapClient was not connected during the WaitForNewMessagesAsync method");
                             await ReconnectAsync();
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"_imapClient already connected. That's good");
                         }
 
                         if (!SentFolder.IsOpen)
@@ -594,8 +599,16 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                             _logger.LogInformation($"SentFolder open. Done");
                         }
+                        else
+                        {
+                            _logger.LogInformation("SentFolder already open. That's good");
+                        }
+
+                        _logger.LogInformation("Now calling _imapClient.IdleAsync(_done.Token, _tokenSource.Token");
 
                         await _imapClient.IdleAsync(_done.Token, _tokenSource.Token);
+
+                        _logger.LogInformation("Done awaiting the _imapClient.IdleAsync");
                     }
                     catch (Exception e)
                     {
