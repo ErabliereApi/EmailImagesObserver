@@ -19,8 +19,11 @@ namespace BlazorApp.AzureComputerVision;
 /// </summary>
 public class IdleClient : IDisposable, IObservable<ImageInfo>
 {
+    /// <summary>
+    /// A global cancellation token source
+    /// </summary>
     private readonly CancellationTokenSource _tokenSource;
-    private CancellationTokenSource? done;
+    private CancellationTokenSource? _done;
     private bool messagesArrived;
     private readonly IImapClient _imapClient;
     private readonly LoginInfo _loginInfo;
@@ -562,20 +565,30 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             if (_imapClient.Capabilities.HasFlag(ImapCapabilities.Idle))
             {
-                _logger.LogInformation("Idling...");
+                _logger.LogInformation("WaitForNewMessagesAsync: Idling...");
 
                 // Note: IMAP servers are only supposed to drop the connection after 30 minutes, so normally
                 // we'd IDLE for a max of, say, ~29 minutes... but GMail seems to drop idle connections after
                 // about 10 minutes, so we'll only idle for 9 minutes.
-                done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
+                _done = new CancellationTokenSource(new TimeSpan(0, 9, 0));
                 try
                 {
-                    await _imapClient.IdleAsync(done.Token, _tokenSource.Token);
+                    if (!SentFolder.IsOpen)
+                    {
+                        _logger.LogInformation("SendFolder was not open, now oppening the sentFolder");
+
+                        await SentFolder.OpenAsync(FolderAccess.ReadOnly, _tokenSource.Token);
+
+                        _logger.LogInformation($"SentFolder open. Done");
+                    }
+
+                    await _imapClient.IdleAsync(_done.Token, _tokenSource.Token);
                 }
                 finally
                 {
-                    done.Dispose();
-                    done = null;
+                    _logger.LogInformation($"{nameof(WaitForNewMessagesAsync)} Finish Idling.");
+                    _done.Dispose();
+                    _done = null;
                 }
             }
             else
@@ -620,7 +633,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 _logger.LogInformation("\tOnCountChanged: 1 new message has arrived.");
 
             messagesArrived = true;
-            done?.Cancel();
+            _done?.Cancel();
         }
         else
         {
