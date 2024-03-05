@@ -290,10 +290,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 if (await _context.ImagesInfo.AnyAsync())
                 {
                     imageInfo = await _context.ImagesInfo
-                        .OrderByDescending(i => i.UniqueId)
+                        .OrderByDescending(i => i.DateEmail)
                         .FirstOrDefaultAsync(token);
 
                     _uniqueId = imageInfo?.UniqueId;
+
+                    _startDate = imageInfo?.DateEmail.GetValueOrDefault(_config.GetValue<DateTimeOffset>("StartDate").DateTime) 
+                        ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
                 }
 
                 if (_uniqueId == null)
@@ -316,7 +319,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _emailStateDb = entry.Entity;
                 }
 
-                if (_uniqueId.HasValue)
+                if (_uniqueId.HasValue && 
+                    _emailStateDb.Email != null &&
+                    _emailStateDb.Email.Contains("gmail", StringComparison.OrdinalIgnoreCase) == false)
                 {
                     _logger.LogInformation("Fetch message since uniqueId: {uniqueId} datetime: {date}", _uniqueId, imageInfo?.DateEmail);
 
