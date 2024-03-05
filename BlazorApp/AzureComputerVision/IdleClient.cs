@@ -75,7 +75,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 // Gmail uses the [Gmail]/Sent Mail folder
                 _sentFolder = _imapClient.GetFolder(SpecialFolder.Sent);
 
-                Console.WriteLine(_sentFolder);
+                _logger?.LogInformation(_sentFolder.ToString());
             }
             else
             {
@@ -333,7 +333,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else 
                 {
-                    _logger.LogInformation("EmailStateDb is null");
+                    _logger.LogInformation("EmailStateDb is null o need to create a new.");
                 }
 
                 if (_uniqueId.HasValue &&
@@ -354,7 +354,18 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), token);
 
-                    fetched = await SentFolder.FetchAsync(idList, MessageSummaryItems.Full |
+                    _logger.LogInformation("idList: {idList}", idList.Count);
+
+                    var preFetch = await SentFolder.FetchAsync(idList, MessageSummaryItems.UniqueId |
+                                                                        MessageSummaryItems.Envelope, token);
+
+                    _logger.LogInformation("PreFetched {preFetched} messages", preFetch.Count);
+
+                    var filtredIdList = preFetch.Where(m => m.Date >= _startDate).Select(m => m.UniqueId).ToList();
+
+                    _logger.LogInformation("filtredIdList: {filtredIdList}", filtredIdList.Count);
+
+                    fetched = await SentFolder.FetchAsync(filtredIdList, MessageSummaryItems.Full |
                                                                   MessageSummaryItems.UniqueId |
                                                                   MessageSummaryItems.BodyStructure, _tokenSource.Token);
 
@@ -383,7 +394,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             if (print) 
             {
-                _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder, message.Envelope.Subject);
+                _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder.ToString(), message.Envelope.Subject);
             }
 
             if (await analyseImage(message))

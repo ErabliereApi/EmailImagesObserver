@@ -7,17 +7,19 @@ public static class AddHostHeapInspectorDecorator
 {
     public static IHost WithHeapInspector(this IHost host)
     {
-        return new HeapInspector(host);
+        return new HeapInspector(host, host.Services.GetRequiredService<ILogger<HeapInspector>>());
     }
 }
 
 public class HeapInspector : IHost
 {
     private IHost _host;
+    private readonly ILogger<HeapInspector> _logger;
 
-    public HeapInspector(IHost host)
+    public HeapInspector(IHost host, ILogger<HeapInspector> logger)
     {
         _host = host;
+        _logger = logger;
     }
 
     public IServiceProvider Services => _host.Services;
@@ -43,14 +45,14 @@ public class HeapInspector : IHost
 
                     foreach (var obj in heap?.EnumerateObjects().Where(obj => GC.GetGeneration(obj) == 2) ?? Array.Empty<ClrObject>())
                     {
-                        Console.WriteLine(obj.ToString());
+                        _logger.LogInformation(obj.ToString());
                     }
 
                     await Task.Delay(1000, cancellationToken);
                 }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine(e);
+                    _logger.LogError(e, e.Message);
                 }
             }
             
