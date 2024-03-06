@@ -1,11 +1,15 @@
 ﻿@page "/"
 @using AzureComputerVision
 @using System.IO
+@using Microsoft.Azure.CognitiveServices.Vision.ComputerVision
+@using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models
+@using Microsoft.Extensions.Options
 @inject IdleClient idleClient
 @inject IConfiguration config
 @inject Data.BlazorDbContext context
 @inject IJSRuntime JS
 @inject TimezoneService TimezoneService
+@inject IOptions<LoginInfo> loginInfo
 
 <h1>Email Images Observer!</h1>
 
@@ -53,13 +57,34 @@ else
 
 <span>@TimezoneService.TimeZoneInfo.DisplayName</span>
 
+
+<h2>Availlable models</h2>
+
+@if (Models != null)
+{
+    @foreach (var model in Models.ModelsProperty)
+    {
+        <ul>
+            <li>@model.Name</li>
+        </ul>
+    }
+}
+
 @code 
 {
     public Data.EmailStates EmailState { get; set; } = new Data.EmailStates();
 
+    public ListModelsResult? Models { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         EmailState = await context.EmailStates.Where(e => e.Email == config["LoginInfo:EmailLogin"]).FirstOrDefaultAsync() ?? EmailState;
+
+        var client = AzureImageMLApi.Authenticate(loginInfo.Value);
+
+        var models = await client.ListModelsAsync();
+
+        Models = models;
     }
 
     protected string GetSpaceUsed()

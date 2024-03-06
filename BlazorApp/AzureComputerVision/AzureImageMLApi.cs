@@ -73,9 +73,12 @@ public class AzureImageMLApi
         {
             await azureFreeTimeConstraint;
 
-            using var stream = new MemoryStream(imageInfo.Images);
+            using var stream = new MemoryStream(imageInfo.Images);            
 
-            ImageAnalysis results = await client.AnalyzeImageInStreamAsync(stream, visualFeatures: features);
+            ImageAnalysis results = await client.AnalyzeImageInStreamAsync(
+                stream, 
+                visualFeatures: features, 
+                cancellationToken: token);
 
             var jsonResult = JsonSerializer.Serialize(results);
 
@@ -97,7 +100,7 @@ public class AzureImageMLApi
         }
         catch (Exception? e)
         {
-            _logger.LogError(e, e.Message);
+            _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
         }
     }
 }

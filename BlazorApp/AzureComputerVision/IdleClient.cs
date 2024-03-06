@@ -567,7 +567,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
     async Task WaitForNewMessagesAsync()
     {
-        while (!messagesArrived && (_done == null || !_done.IsCancellationRequested))
+        while (!messagesArrived && (_done == null || !_done.IsCancellationRequested) && !_tokenSource.IsCancellationRequested)
         {
             try
             {
