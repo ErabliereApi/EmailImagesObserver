@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -15,6 +16,12 @@ public class ImageInfo : IComparable<ImageInfo>
 
     public string? Name { get; set; }
 
+    /// <summary>
+    /// Object from the email of the image
+    /// </summary>
+    [MaxLength(400)]
+    public string? Object { get; set; }
+
     public string? AzureImageAPIInfo { get; set; }
 
     public byte[]? Images { get; set; }
@@ -22,6 +29,13 @@ public class ImageInfo : IComparable<ImageInfo>
     public DateTimeOffset DateAjout { get; set; }
 
     public DateTimeOffset? DateEmail { get; set; }
+
+    public Guid? EmailStatesId { get; set; }
+
+    public Guid? ExternalOwner { get; set; }
+
+    public EmailStates? EmailStates { get; set; }
+
 
     private ImageAnalysis? _imagesAnalysis;
 
