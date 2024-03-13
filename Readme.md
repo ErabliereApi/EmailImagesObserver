@@ -7,10 +7,13 @@ Improve capabilities of an ip camera system.
 Compatible email services
 
 - office 365
+- gmail
 
 ## How it work
 
 This app connect to an imap server and listen to new message sent. When there is one and the message have an attachment, if it is an image, the images is sent to azure cognitive service and result are store in an EF repository of choices.
+
+![Diagram](Docs/EmailImageObserver.drawio.png)
 
 ## Pre-requisit
 
