@@ -395,7 +395,18 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             }
             catch (Exception e)
             {
+                await Task.Delay(10000, token);
+
                 _logger.LogCritical(e, $"Unmanaged exception in {nameof(FetchMessageSummariesAsync)} " + e.Message);
+
+                // try reconnect
+                try {
+                    await ReconnectAsync();
+                }
+                catch (Exception e2)
+                {
+                    _logger.LogCritical(e2, $"Unmanaged exception in trying reconnect {nameof(FetchMessageSummariesAsync)} " + e2.Message);
+                }
             }
         } while (true);
 
