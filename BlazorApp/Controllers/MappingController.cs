@@ -26,7 +26,7 @@ namespace BlazorApp.Controllers
 
         // GET: api/Mapping/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Mapping>> GetMapping(int id)
+        public async Task<ActionResult<Mapping>> GetMapping(Guid id)
         {
             var mapping = await _context.Mappings.FindAsync(id);
 

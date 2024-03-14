@@ -449,7 +449,10 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     Name = fileName,
                     DateAjout = DateTimeOffset.Now,
                     DateEmail = item.InternalDate ?? item.Date,
-                    UniqueId = item.UniqueId.Id
+                    UniqueId = item.UniqueId.Id,
+                    ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token),
+                    Object = item.Envelope.Subject,
+                    EmailStatesId = _emailStateDb?.Id
                 };
 
                 _logger.LogInformation("New ImageInfo: {imageInfo}", JsonSerializer.Serialize(imageInfo));
@@ -519,7 +522,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     DateAjout = DateTimeOffset.Now,
                     DateEmail = item.InternalDate ?? item.Date,
                     UniqueId = item.UniqueId.Id,
-                    ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token)
+                    ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token),
+                    Object = item.Envelope.Subject,
+                    EmailStatesId = _emailStateDb?.Id
                 };
 
                 if (item.InternalDate.HasValue)
