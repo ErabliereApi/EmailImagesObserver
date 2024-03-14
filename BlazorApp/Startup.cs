@@ -44,6 +44,9 @@ public class Startup
 
         services.AddForwardedHeadersIfEnable(Configuration);
 
+        // Controllers
+        services.AddControllers();
+
         // Blazor app
         var mvcBuilder = services.AddRazorPages();
         if (AddAuthentificationExtension.IsAzureADAuth(Configuration))
@@ -155,6 +158,7 @@ public class Startup
 
         app.UseEndpoints(endpoints =>
         {
+            endpoints.MapControllers();
             endpoints.MapBlazorHub();
             endpoints.MapFallbackToPage("/_Host");
         });

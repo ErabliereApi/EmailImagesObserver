@@ -518,7 +518,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     Name = fileName,
                     DateAjout = DateTimeOffset.Now,
                     DateEmail = item.InternalDate ?? item.Date,
-                    UniqueId = item.UniqueId.Id
+                    UniqueId = item.UniqueId.Id,
+                    ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token)
                 };
 
                 if (item.InternalDate.HasValue)
@@ -563,6 +564,20 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
             }
         }
+    }
+
+    private async Task<Guid?> MapExternalOwnerOnSubject(string senderEmail, string subject, CancellationToken token)
+    {
+        var mapping = _context.Mappings.Where(m => m.Filter == senderEmail);
+
+        var map = await mapping.FirstOrDefaultAsync(m => m.Filter == senderEmail && m.Key == subject, token);
+
+        if (map != null)
+        {
+            return map.Value;
+        }
+
+        return null;
     }
 
     async Task WaitForNewMessagesAsync()
