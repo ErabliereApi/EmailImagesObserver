@@ -1,6 +1,7 @@
 using BlazorApp.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorApp.Controllers
 {
@@ -40,7 +41,28 @@ namespace BlazorApp.Controllers
                 skip = 0;
             }
 
-            return Ok(_context.ImagesInfo.Where(i => i.ExternalOwner == ownerId).Skip(skip.Value).Take(take.Value));
+            return Ok(_context.ImagesInfo.Where(i => i.ExternalOwner == ownerId)
+                                         .OrderByDescending(i => i.DateEmail)
+                                         .Skip(skip.Value)
+                                         .Take(take.Value));
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchImage(long id, [FromBody] ImageInfo patch, CancellationToken token)
+        {
+            var image = await _context.ImagesInfo.FirstOrDefaultAsync(i => i.Id == id, token);
+
+            if (image == null) {
+                return NotFound();
+            }
+
+            if (patch.ExternalOwner.HasValue) {
+                image.ExternalOwner = patch.ExternalOwner;
+            }
+            
+            await _context.SaveChangesAsync(token);
+
+            return Ok(image);
         }
     }
 }
