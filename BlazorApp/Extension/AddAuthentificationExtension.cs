@@ -142,4 +142,14 @@ public static class AddAuthentificationExtension
     {
         return !string.IsNullOrWhiteSpace(configuration.GetValue<string>("COOKIEAUTH_USER"));
     }
+
+    public static bool IsUnsecureControllerEnable(IServiceProvider requestServices)
+    {
+        var config = requestServices.GetRequiredService<IConfiguration>();
+
+        return string.Equals(
+            config.GetValue<string>("EnableUnsecureController"), 
+            bool.TrueString, 
+            StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -24,6 +24,16 @@ This app connect to an imap server and listen to new message sent. When there is
 5. Imap server address
 6. Imap server port
 
+## Run the app
+
+```
+dotnet watch run
+```
+
+Local url are:
+ - http://localhost:5100
+ - https://localhost:5101
+
 ## Deploy the app
 
 There is a docker image availlable on dockerhub. Here is an example of deployment behind reverse proxy that use many configuration.

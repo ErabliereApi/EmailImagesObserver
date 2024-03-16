@@ -6,7 +6,8 @@ namespace BlazorApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [AllowAnonymous]
+    [EnableUsecureController]
     public class ImageController : ControllerBase
     {
         private readonly BlazorDbContext _context;

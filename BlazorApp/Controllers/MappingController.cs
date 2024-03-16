@@ -7,7 +7,8 @@ namespace BlazorApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [AllowAnonymous]
+    [EnableUsecureController]
     public class MappingController : ControllerBase
     {
         private readonly BlazorDbContext _context;

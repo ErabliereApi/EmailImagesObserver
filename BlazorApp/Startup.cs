@@ -43,10 +43,7 @@ public class Startup
         });
 
         services.AddForwardedHeadersIfEnable(Configuration);
-
-        // Controllers
-        services.AddControllers();
-
+        
         // Blazor app
         var mvcBuilder = services.AddRazorPages();
         if (AddAuthentificationExtension.IsAzureADAuth(Configuration))
