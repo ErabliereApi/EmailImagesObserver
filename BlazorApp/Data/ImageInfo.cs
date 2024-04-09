@@ -8,6 +8,7 @@ namespace BlazorApp.Data;
 
 [Index(nameof(DateAjout), IsUnique = false, Name = "Index_DateAjout")]
 [Index(nameof(UniqueId), IsUnique = true, Name = "Index_UniqueId")]
+[Index(nameof(ExternalOwner), IsUnique = false, Name = "Index_ExternalOwner")]
 public class ImageInfo : IComparable<ImageInfo>
 {
     public long Id { get; set; }

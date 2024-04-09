@@ -20,15 +20,24 @@
             </NavLink>
         </li>
     </ul>
+
+    @* <div>
+        <button class="btn btn-link" @onclick="ToggleNavMenu">&gt;&gt;</button>
+    </div> *@
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private string? NavMenuCssClass { get; set; }
 
     private void ToggleNavMenu()
     {
-        collapseNavMenu = !collapseNavMenu;
+        if (NavMenuCssClass == null)
+        {
+            NavMenuCssClass = "collapse";
+        }
+        else
+        {
+            NavMenuCssClass = null;
+        }
     }
 }
