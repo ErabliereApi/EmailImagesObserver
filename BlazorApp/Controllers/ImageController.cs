@@ -19,7 +19,11 @@ namespace BlazorApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetImages([FromQuery] Guid? ownerId, [FromQuery] int? take, [FromQuery] int? skip)
+        public IActionResult GetImages(
+            [FromQuery] Guid? ownerId, 
+            [FromQuery] int? take, 
+            [FromQuery] int? skip,
+            [FromQuery] string? search)
         {
             if (take < 0) {
                 return BadRequest("The number of images to retrieve must be greater than 0");
@@ -41,10 +45,15 @@ namespace BlazorApp.Controllers
                 skip = 0;
             }
 
-            return Ok(_context.ImagesInfo.Where(i => i.ExternalOwner == ownerId)
-                                         .OrderByDescending(i => i.DateEmail)
-                                         .Skip(skip.Value)
-                                         .Take(take.Value));
+            var baseQuery = _context.ImagesInfo.Where(i => i.ExternalOwner == ownerId);
+
+            if (!string.IsNullOrWhiteSpace(search)) {
+                baseQuery = baseQuery.Where(i => i.AzureImageAPIInfo != null && i.AzureImageAPIInfo.Contains(search));
+            }
+
+            return Ok(baseQuery.OrderByDescending(i => i.DateEmail)
+                               .Skip(skip.Value)
+                               .Take(take.Value));
         }
 
         [HttpPatch("{id}")]
