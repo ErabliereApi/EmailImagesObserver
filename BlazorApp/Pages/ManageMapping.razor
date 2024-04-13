@@ -1,0 +1,102 @@
+@page "/manage-mapping"
+@inject BlazorDbContext Context
+
+<AuthorizeView Roles="administrateur">
+    <h3>Manage Mapping</h3>
+
+    @if (Mappings == null)
+    {
+        <p>Loading mappings...</p>
+    }
+    else if (Mappings.Count == 0)
+    {
+        <p>No mappings found.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Filter</th>
+                    <th>Key</th>
+                    <th>Value</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var mapping in Mappings)
+                {
+                    <tr>
+                        <td>@mapping.Id</td>
+                        <td>@mapping.Name</td>
+                        <td>@mapping.Filter</td>
+                        <td>@mapping.Key</td>
+                        <td>@mapping.Value</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteMapping(mapping.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h4>Add New Mapping</h4>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="nameInput">Name:</label>
+                <input type="text" class="form-control" id="nameInput" @bind="@NewMapping.Name" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="filterInput">Filter:</label>
+                <input type="text" class="form-control" id="filterInput" @bind="@NewMapping.Filter" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="keyInput">Key:</label>
+                <input type="text" class="form-control" id="keyInput" @bind="@NewMapping.Key" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="valueInput">Value:</label>
+                <input type="text" class="form-control" id="valueInput" @bind="@NewMapping.Value" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary" @onclick="AddMapping">Add Mapping</button>
+        </div>
+    </div>
+</AuthorizeView>
+
+@code {
+    private List<Mapping> Mappings;
+    private Mapping NewMapping = new Mapping();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Mappings = await Context.Mappings.ToListAsync();
+    }
+
+    private async Task AddMapping()
+    {
+        await Context.Mappings.AddAsync(NewMapping);
+        await Context.SaveChangesAsync();
+        NewMapping = new Mapping();
+        Mappings = await Context.Mappings.ToListAsync();
+    }
+
+    private async Task DeleteMapping(Guid mappingId)
+    {
+        Context.Mappings.Remove(await Context.Mappings.FindAsync(mappingId));
+        await Context.SaveChangesAsync();
+        Mappings = await Context.Mappings.ToListAsync();
+    }
+}
