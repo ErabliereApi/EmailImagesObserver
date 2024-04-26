@@ -22,7 +22,7 @@ namespace BlazorApp.Extension;
 public static class AddAuthentificationExtension
 {
     /// <exception cref="InvalidProgramException" />
-    public static IServiceCollection AddTeamMemberVelocityAutorisation(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddEmailImageObserverAutorisation(this IServiceCollection services, IConfiguration configuration)
     {
         if (!OnlyOneAuthMethodIsUsed(configuration))
         {

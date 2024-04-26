@@ -38,4 +38,59 @@ public class LoginInfo
     /// The impa port
     /// </summary>
     public int ImapPort { get; set; }
+
+    /// <summary>
+    /// Set the value to true if the email alert is configured
+    /// </summary>
+    public bool SendEmailAlertIsConfigured { get; set; }
+
+    /// <summary>
+    /// Set the value to true if the SMS alert is configured
+    /// </summary>
+    public bool SendSMSAlertIsConfigured { get; set; }
+
+    /// <summary>
+    /// The email sender
+    /// </summary>
+    public string Sender { get; set; } = "";
+
+    /// <summary>
+    /// The smtp server address
+    /// </summary>
+    public string SmtpServer { get; set; } = "";
+
+    /// <summary>
+    /// The smtp port
+    /// </summary>
+    public int SmtpPort { get; set; } = 0;
+
+    /// <summary>
+    /// The email username
+    /// </summary>
+    public string? Password { get; set; }
+
+    /// <summary>
+    /// The email username
+    /// </summary>
+    public string Email { get; set; } = "";
+
+    /// <summary>
+    /// TenantId used to send email via OAuth2
+    /// </summary>
+    public string TenantId { get; set; } = "";
+
+    /// <summary>
+    /// Twilo number
+    /// </summary>
+    public string Numero { get; set; } = "";
+
+    /// <summary>
+    /// Twilo account sid
+    /// </summary>
+    public string AccountSid { get; set; } = "";
+
+    /// <summary>
+    /// Twilo auth token
+    /// </summary>
+    public string AuthToken { get; set; } = "";
 }

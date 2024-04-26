@@ -462,6 +462,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     DateEmail = item.InternalDate ?? item.Date,
                     UniqueId = item.UniqueId.Id,
                     ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token),
+                    ExternalSubOwner = await MapExternalSubOwnerOnText(item, token),
                     Object = item.Envelope.Subject,
                     EmailStatesId = _emailStateDb?.Id
                 };
@@ -534,6 +535,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     DateEmail = item.InternalDate ?? item.Date,
                     UniqueId = item.UniqueId.Id,
                     ExternalOwner = await MapExternalOwnerOnSubject(item.Envelope.From.Mailboxes.First().Address, item.Envelope.Subject, token),
+                    ExternalSubOwner = await MapExternalSubOwnerOnText(item, token),
                     Object = item.Envelope.Subject,
                     EmailStatesId = _emailStateDb?.Id
                 };
@@ -580,6 +582,27 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Use the text of the email to map the external sub owner
+    /// </summary>
+    /// <param name="item"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    private async Task<Guid?> MapExternalSubOwnerOnText(IMessageSummary item, CancellationToken token)
+    {
+        var mapping = await _context.Mappings.Where(m => m.Filter == item.Envelope.From.Mailboxes.First().Address &&
+                                                         m.SubFilter != null)
+                                             .ToArrayAsync(token);
+
+        var textBody = item.TextBody.ToString();
+
+        _logger.LogInformation("TextBody: {textBody}", textBody);
+
+        var map = mapping.FirstOrDefault(m => textBody.Contains(m.SubFilter ?? ""));
+
+        return map?.SubValue;
     }
 
     private async Task<Guid?> MapExternalOwnerOnSubject(string senderEmail, string subject, CancellationToken token)

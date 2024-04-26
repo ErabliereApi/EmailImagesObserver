@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web.UI;
 using Microsoft.Extensions.Logging.Console;
+using MailKit.Net.Smtp;
 
 namespace BlazorApp;
 
@@ -60,7 +61,7 @@ public class Startup
         services.AddScoped<ImageInfoService>();
         services.AddSingleton(new UrlService(Configuration["StartsWithSegments"]));
 
-        services.AddTeamMemberVelocityAutorisation(Configuration);
+        services.AddEmailImageObserverAutorisation(Configuration);
 
         services.AddDistributedCaching(Configuration);
 
@@ -88,6 +89,10 @@ public class Startup
 
         // AzureImageML
         services.AddScoped<AzureImageMLApi>();
+        services.AddSingleton<AlerteClient>();
+        services.AddSingleton<ISmtpClient>(sp => new SmtpClient(sp.GetRequiredService<IProtocolLogger>()));
+        services.AddSingleton<IEmailService, ErabliereApiEmailService>();
+        services.AddSingleton<ISMSService, TwilioSMSService>();
 
         // Database
         services.AddDbContext<BlazorDbContext>(options =>

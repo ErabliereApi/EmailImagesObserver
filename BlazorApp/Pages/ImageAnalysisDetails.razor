@@ -11,6 +11,24 @@
     <div class="row">
         <div class="col-md-6">
             <img src="data:image/png;base64,@Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>())" class="img-fluid" />
+            <dl>
+                <dt>Id</dt>
+                <dd>@ImageInfo?.Id</dd>
+                <dt>Name</dt>
+                <dd>@ImageInfo?.Name</dd>
+                <dt>UniqueId</dt>
+                <dd>@ImageInfo?.UniqueId</dd>
+                <dt>Object</dt>
+                <dd>@ImageInfo?.Object</dd>
+                <dt>External Owner</dt>
+                <dd>@ImageInfo?.ExternalOwner</dd>
+                <dt>External SubOwner</dt>
+                <dd>@ImageInfo?.ExternalSubOwner</dd>
+                <dt>Date Added</dt>
+                <dd>@ImageInfo?.DateAjout</dd>
+                <dt>Date Email</dt>
+                <dd>@ImageInfo?.DateEmail</dd>
+            </dl>
         </div>
         <div class="col-md-6">
             <pre class="text">

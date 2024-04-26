@@ -19,6 +19,8 @@ public class BlazorDbContext : DbContext
 
     public DbSet<Mapping> Mappings { get; set; }
 
+    public DbSet<Alerte> Alertes { get; set; }
+
     public async Task<int> ClearImagesAsync(string email, CancellationToken token = default)
     {
         int saved = 0;

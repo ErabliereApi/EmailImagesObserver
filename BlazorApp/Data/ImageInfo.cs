@@ -35,8 +35,9 @@ public class ImageInfo : IComparable<ImageInfo>
 
     public Guid? ExternalOwner { get; set; }
 
-    public EmailStates? EmailStates { get; set; }
+    public Guid? ExternalSubOwner { get; set; }
 
+    public EmailStates? EmailStates { get; set; }
 
     private ImageAnalysis? _imagesAnalysis;
 

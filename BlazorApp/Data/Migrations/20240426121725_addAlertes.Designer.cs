@@ -4,6 +4,7 @@ using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(BlazorDbContext))]
-    partial class BlazorDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240426121725_addAlertes")]
+    partial class addAlertes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,21 +44,7 @@ namespace Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ExternalOwnerId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ExternalOwnerSubId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Keywords")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SendTo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TextTo")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -118,9 +107,6 @@ namespace Data.Migrations
                     b.Property<Guid?>("ExternalOwner")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ExternalSubOwner")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<byte[]>("Images")
                         .HasColumnType("varbinary(max)");
 
@@ -162,12 +148,6 @@ namespace Data.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SubFilter")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("SubValue")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("Value")
                         .HasColumnType("uniqueidentifier");

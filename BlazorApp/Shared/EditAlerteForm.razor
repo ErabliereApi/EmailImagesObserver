@@ -1,0 +1,74 @@
+@using BlazorApp.Data
+@inject BlazorDbContext Context
+
+<EditForm Model="@alerte" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="form-group">
+        <label for="title">Title:</label>
+        <InputText id="title" class="form-control" @bind-Value="@alerte.Title" />
+        <ValidationMessage For="@(() => alerte.Title)" />
+    </div>
+
+    <div class="form-group">
+        <label for="description">Description:</label>
+        <InputText id="description" class="form-control" @bind-Value="@alerte.Description" />
+        <ValidationMessage For="@(() => alerte.Description)" />
+    </div>
+
+    <div class="form-group">
+        <label for="keywords">Keywords:</label>
+        <InputText id="keywords" class="form-control" @bind-Value="@alerte.Keywords" />
+        <ValidationMessage For="@(() => alerte.Keywords)" />
+    </div>
+
+    <div class="form-group">
+        <label for="ownerId">Email To:</label>
+        <InputText id="ownerId" class="form-control" @bind-Value="@alerte.SendTo" />
+        <ValidationMessage For="@(() => alerte.SendTo)" />
+    </div>
+
+    <div class="form-group">
+        <label for="ownerSubId">Text To:</label>
+        <InputText id="ownerSubId" class="form-control" @bind-Value="@alerte.TextTo" />
+        <ValidationMessage For="@(() => alerte.TextTo)" />
+    </div>
+
+    <div class="form-group">
+        <label for="externalOwnerId">External Owner Id:</label>
+        <InputText id="externalOwnerId" class="form-control" @bind-Value="@alerte.ExternalOwnerId" />
+        <ValidationMessage For="@(() => alerte.ExternalOwnerId)" />
+    </div>
+
+    <div class="form-group">
+        <label for="externalOwnerSubId">External Owner Sub Id:</label>
+        <InputText id="externalOwnerSubId" class="form-control" @bind-Value="@alerte.ExternalOwnerSubId" />
+        <ValidationMessage For="@(() => alerte.ExternalOwnerSubId)" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+
+</EditForm>
+
+@code {
+    private Alerte alerte = new Alerte();
+
+    [Parameter]
+    public EventCallback OnValidSubmit { get; set; }
+
+    private void HandleValidSubmit()
+    {
+        if (alerte.Id == 0)
+        {
+            Context.Alertes.Add(alerte);
+        }
+        else
+        {
+            Context.Alertes.Update(alerte);
+        }
+
+        Context.SaveChanges();
+
+        OnValidSubmit.InvokeAsync();
+    }
+}

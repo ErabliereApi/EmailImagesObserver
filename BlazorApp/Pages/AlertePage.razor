@@ -1,0 +1,78 @@
+@page "/alertes"
+@using BlazorApp.Data
+@inject BlazorDbContext Context
+
+<h3>Alertes</h3>
+
+@if (displayForm) 
+{
+    <EditAlerteForm OnValidSubmit="() => RefreshList()" />
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Keywords</th>
+            <th>External Owner Id</th>
+            <th>External Sub Owner Id</th>
+            <th>Send To</th>
+            <th>Text To</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var alerte in alertes)
+        {
+            <tr>
+                <td>@alerte.Id</td>
+                <td>@alerte.Title</td>
+                <td>@alerte.Description</td>
+                <td>@alerte.Keywords</td>
+                <td>@alerte.ExternalOwnerId</td>
+                <td>@alerte.ExternalOwnerSubId</td>
+                <td>@alerte.SendTo</td>
+                <td>@alerte.TextTo</td>
+                <td>
+                    <button class="btn btn-danger" @onclick="() => DeleteAlerte(alerte.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button class="btn btn-success" @onclick="CreateAlerte">Create New Alerte</button>
+
+@code {
+    List<Alerte> alertes = new List<Alerte>();
+    bool displayForm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        alertes = await Context.Alertes.ToListAsync();
+    }
+
+    private void CreateAlerte()
+    {
+        displayForm = true;
+    }
+
+    private async Task RefreshList()
+    {
+        displayForm = false;
+        alertes = await Context.Alertes.ToListAsync();
+    }
+
+    private async Task DeleteAlerte(int alerteId)
+    {
+        var alerte = await Context.Alertes.FindAsync(alerteId);
+        if (alerte != null)
+        {
+            Context.Alertes.Remove(alerte);
+            await Context.SaveChangesAsync();
+            await RefreshList();
+        }
+    }
+}

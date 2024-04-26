@@ -4,6 +4,8 @@ using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ComposableAsync;
 using RateLimiter;
+using BlazorApp.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -17,6 +19,7 @@ public class AzureImageMLApi
     static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
     private readonly Data.BlazorDbContext _context;
     private readonly ILogger<AzureImageMLApi> _logger;
+    private readonly AlerteClient alerteClient;
 
     /// <summary>
     /// Get an authenticated <see cref="ComputerVisionClient" />
@@ -31,10 +34,11 @@ public class AzureImageMLApi
         return client;
     }
 
-    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger)
+    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger, AlerteClient alerteClient)
     {
         _context = context;
         _logger = logger;
+        this.alerteClient = alerteClient;
     }
 
     /// <summary>
@@ -73,11 +77,11 @@ public class AzureImageMLApi
         {
             await azureFreeTimeConstraint;
 
-            using var stream = new MemoryStream(imageInfo.Images);            
+            using var stream = new MemoryStream(imageInfo.Images);
 
             ImageAnalysis results = await client.AnalyzeImageInStreamAsync(
-                stream, 
-                visualFeatures: features, 
+                stream,
+                visualFeatures: features,
                 cancellationToken: token);
 
             var jsonResult = JsonSerializer.Serialize(results);
@@ -97,10 +101,49 @@ public class AzureImageMLApi
                     value.Value.OnNext(imageInfo);
                 }
             }
+
+            await SendAlerteAsync(imageInfo, jsonResult, token);
         }
         catch (Exception? e)
         {
             _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
+        }
+    }
+
+    private async Task SendAlerteAsync(ImageInfo imageInfo, string jsonResult, CancellationToken token)
+    {
+        var alertes = await _context.Alertes
+            .Where(a => a.ExternalOwnerId == null || a.ExternalOwnerId == imageInfo.ExternalOwner.ToString())
+            .ToArrayAsync(token);
+
+        var anyAlerte = false;
+
+        foreach (var alerte in alertes)
+        {
+            if (alerte.Keywords == null)
+            {
+                continue;
+            }
+
+            var keywords = alerte.Keywords.Split(';');
+
+            foreach (var keyword in keywords)
+            {
+                if (jsonResult.Contains(keyword))
+                {
+                    await alerteClient.SendAlertAsync(alerte, imageInfo, token);
+                    anyAlerte = true;
+                }
+            }
+        }
+
+        if (anyAlerte)
+        {
+            _logger.LogInformation("Alerte was sent");
+        }
+        else
+        {
+            _logger.LogInformation("No alerte was sent");
         }
     }
 }
