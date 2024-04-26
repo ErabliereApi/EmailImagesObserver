@@ -55,7 +55,7 @@ public class TwilioSMSService : ISMSService
 
             TwilioClient.Init(accountSid, authToken);
 
-            MessageResource.Create(
+            await MessageResource.CreateAsync(
                 body: message,
                 from: new PhoneNumber(numero),
                 to: new PhoneNumber(destinataire)
