@@ -212,6 +212,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                         var rate = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0;
 
                         _logger.LogWarning("DiscardingRateLimiter apply. Rate is {rate}", rate);
+
+                        await Task.Delay(TimeSpan.FromSeconds(10), token);
                     }
                 }
             }

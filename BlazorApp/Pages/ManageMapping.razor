@@ -109,8 +109,14 @@
 
     private async Task DeleteMapping(Guid mappingId)
     {
-        Context.Mappings.Remove(await Context.Mappings.FindAsync(mappingId));
-        await Context.SaveChangesAsync();
+        var map = await Context.Mappings.FindAsync(mappingId);
+
+        if (map != null)
+        {
+            Context.Mappings.Remove(map);
+            await Context.SaveChangesAsync();
+        }
+        
         Mappings = await Context.Mappings.ToListAsync();
     }
 }

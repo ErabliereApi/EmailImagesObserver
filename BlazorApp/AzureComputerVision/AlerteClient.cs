@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using BlazorApp.AzureComputerVision;
 using BlazorApp.Services;
 using Microsoft.Extensions.Options;
@@ -65,7 +64,7 @@ public class AlerteClient
         }
         catch (Exception e)
         {
-            logger.LogCritical(new EventId(92837486, "TriggerAlertV2Attribute.TriggerAlerte"), e, "Une erreur imprévue est survenu lors de l'envoie de l'alerte.");
+            logger.LogCritical(new EventId(92837486, "AlerteClient.SendEmailAlert"), e, "Une erreur imprévue est survenu lors de l'envoie de l'alerte. {message} {stack}", e.Message, e.StackTrace);
         }
     }
 
@@ -92,7 +91,7 @@ public class AlerteClient
         }
         catch (Exception e)
         {
-            logger.LogCritical(new EventId(92837486, "TriggerAlertAttribute.TriggerAlerte"), e, "Une erreur imprévue est survenu lors de l'envoie de l'alerte.");
+            logger.LogCritical(new EventId(92837486, "AlerteClient.SendSMSAlert"), e, "Une erreur imprévue est survenu lors de l'envoie de l'alerte. {message} {stack}", e.Message, e.StackTrace);
         }
     }
 
