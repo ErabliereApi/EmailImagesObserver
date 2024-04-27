@@ -15,6 +15,7 @@ public class ImageInfo : IComparable<ImageInfo>
 
     public uint UniqueId { get; set; }
 
+    [MaxLength(255)]
     public string? Name { get; set; }
 
     /// <summary>

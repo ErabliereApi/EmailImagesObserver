@@ -6,7 +6,7 @@
 
 @if (displayForm) 
 {
-    <EditAlerteForm OnValidSubmit="() => RefreshList()" />
+    <EditAlerteForm Alerte="selectedAlerte" OnValidSubmit="() => RefreshList()" />
 }
 
 <table class="table">
@@ -16,6 +16,7 @@
             <th>Title</th>
             <th>Description</th>
             <th>Keywords</th>
+            <th>Remove Keywords</th>
             <th>External Owner Id</th>
             <th>External Sub Owner Id</th>
             <th>Send To</th>
@@ -31,11 +32,13 @@
                 <td>@alerte.Title</td>
                 <td>@alerte.Description</td>
                 <td>@alerte.Keywords</td>
+                <td>@alerte.RemoveKeywords</td>
                 <td>@alerte.ExternalOwnerId</td>
                 <td>@alerte.ExternalOwnerSubId</td>
                 <td>@alerte.SendTo</td>
                 <td>@alerte.TextTo</td>
                 <td>
+                    <button class="btn btn-primary" @onclick="() => EditAlerte(alerte.Id)">Edit</button>
                     <button class="btn btn-danger" @onclick="() => DeleteAlerte(alerte.Id)">Delete</button>
                 </td>
             </tr>
@@ -48,20 +51,30 @@
 @code {
     List<Alerte> alertes = new List<Alerte>();
     bool displayForm = false;
+    Alerte? selectedAlerte = new Alerte();
 
     protected override async Task OnInitializedAsync()
     {
+        selectedAlerte = new Alerte();
         alertes = await Context.Alertes.ToListAsync();
     }
 
     private void CreateAlerte()
     {
+        selectedAlerte = new Alerte();
+        displayForm = true;
+    }
+
+    private void EditAlerte(int alerteId)
+    {
+        selectedAlerte = alertes.FirstOrDefault(a => a.Id == alerteId);
         displayForm = true;
     }
 
     private async Task RefreshList()
     {
         displayForm = false;
+        selectedAlerte = new Alerte();
         alertes = await Context.Alertes.ToListAsync();
     }
 

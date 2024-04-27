@@ -125,11 +125,24 @@ public class AzureImageMLApi
                 continue;
             }
 
+            var searchJson = jsonResult;
+
+            // first remove the RemoveKeywords for the json result
+            if (alerte.RemoveKeywords != null)
+            {
+                var removeKeywords = alerte.RemoveKeywords.Split(';');
+
+                foreach (var removeKeyword in removeKeywords)
+                {
+                    searchJson = searchJson.Replace(removeKeyword, string.Empty);
+                }
+            }
+
             var keywords = alerte.Keywords.Split(';');
 
             foreach (var keyword in keywords)
             {
-                if (jsonResult.Contains(keyword))
+                if (searchJson.Contains(keyword))
                 {
                     await alerteClient.SendAlertAsync(alerte, imageInfo, token);
                     anyAlerte = true;
