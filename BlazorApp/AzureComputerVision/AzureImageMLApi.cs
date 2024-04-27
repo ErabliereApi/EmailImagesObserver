@@ -134,7 +134,16 @@ public class AzureImageMLApi
 
                 foreach (var removeKeyword in removeKeywords)
                 {
-                    searchJson = searchJson.Replace(removeKeyword, string.Empty);
+                    var originLength = searchJson.Length;
+                    searchJson = searchJson.Replace(removeKeyword, string.Empty, StringComparison.OrdinalIgnoreCase);
+                    if (originLength != searchJson.Length)
+                    {
+                        _logger.LogDebug("Keyword removed: {removeKeyword}", removeKeyword);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Keyword not found: {removeKeyword}", removeKeyword);
+                    }
                 }
             }
 
@@ -142,7 +151,7 @@ public class AzureImageMLApi
 
             foreach (var keyword in keywords)
             {
-                if (searchJson.Contains(keyword))
+                if (searchJson.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 {
                     await alerteClient.SendAlertAsync(alerte, imageInfo, token);
                     anyAlerte = true;

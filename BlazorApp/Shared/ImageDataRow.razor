@@ -13,7 +13,9 @@
        <NavLink class="btn btn-primary" href="@urlService.Url($"/imageanalysisdetails/{imageInfo?.Id}")">
            Details
        </NavLink>
-       <button @onclick="@(async () => await ConfirmDelete.Invoke(id, title))" class="btn btn-danger">Delete</button>
+       <AuthorizeView>
+           <button @onclick="@(async () => await ConfirmDelete.Invoke(id, title))" class="btn btn-danger">Delete</button>
+       </AuthorizeView>
     </td>
 </tr>
 
