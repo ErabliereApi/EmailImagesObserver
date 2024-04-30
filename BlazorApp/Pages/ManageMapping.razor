@@ -14,35 +14,37 @@
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Filter</th>
-                    <th>SubFilter</th>
-                    <th>Key</th>
-                    <th>Value</th>
-                    <th>SubValue</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var mapping in Mappings)
-                {
+        <div class="table-responsive-sm">
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>@mapping.Name</td>
-                        <td>@mapping.Filter</td>
-                        <td>@mapping.SubFilter</td>
-                        <td>@mapping.Key</td>
-                        <td>@mapping.Value</td>
-                        <td>@mapping.SubValue</td>
-                        <td>
-                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteMapping(mapping.Id)">Delete</button>
-                        </td>
+                        <th>Name</th>
+                        <th>Filter</th>
+                        <th>SubFilter</th>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th>SubValue</th>
+                        <th></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var mapping in Mappings)
+                    {
+                        <tr>
+                            <td>@mapping.Name</td>
+                            <td>@mapping.Filter</td>
+                            <td>@mapping.SubFilter</td>
+                            <td>@mapping.Key</td>
+                            <td>@mapping.Value</td>
+                            <td>@mapping.SubValue</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteMapping(mapping.Id)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 
     <h4>Add New Mapping</h4>
@@ -79,7 +81,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="form-group" >
+            <div class="form-group">
                 <label for="subValueInput">SubValue:</label>
                 <input type="text" class="form-control" id="subValueInput" @bind="@NewMapping.SubValue" />
             </div>
@@ -116,7 +118,7 @@
             Context.Mappings.Remove(map);
             await Context.SaveChangesAsync();
         }
-        
+
         Mappings = await Context.Mappings.ToListAsync();
     }
 }

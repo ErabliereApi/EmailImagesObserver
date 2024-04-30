@@ -25,7 +25,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly CancellationTokenSource _tokenSource;
     private CancellationTokenSource? _done;
     private bool messagesArrived;
-    private readonly IImapClient _imapClient;
+    public IImapClient _imapClient { get; }
     private readonly LoginInfo _loginInfo;
     private readonly ConcurrentDictionary<Guid, IObserver<ImageInfo>> _observers;
     private readonly IServiceScope _scoped;

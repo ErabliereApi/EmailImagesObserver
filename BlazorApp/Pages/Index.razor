@@ -25,19 +25,21 @@ Welcome to email image observer app. Here you can watch info grab be the backgro
 }
 else
 {
-    <div class="card" style="width: 18rem;">
-        <div class="card-body">
-            <h5 class="card-title">Space used</h5>
-            <h6 class="card-subtitle mb-2 text-muted">@(config["Database:Provider"] ?? "InMemory")</h6>
-            <p class="card-text">@GetSpaceUsed()</p>
+    <div class="row">
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Space used</h5>
+                <h6 class="card-subtitle mb-2 text-muted">@(config["Database:Provider"] ?? "InMemory")</h6>
+                <p class="card-text">@GetSpaceUsed()</p>
+            </div>
         </div>
-    </div>
 
-    <div class="card" style="width: 18rem;">
-        <div class="card-body">
-            <h5 class="card-title">Email Sent</h5>
-            <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessageCount messages</h6>
-            <p class="card-text">@EmailState.MessagesCount images</p>
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Email Sent</h5>
+                <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessageCount messages</h6>
+                <p class="card-text">@EmailState.MessagesCount images</p>
+            </div>
         </div>
     </div>
 }
