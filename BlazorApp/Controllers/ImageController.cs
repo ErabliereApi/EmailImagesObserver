@@ -48,7 +48,9 @@ namespace BlazorApp.Controllers
             var baseQuery = _context.ImagesInfo.Where(i => i.ExternalOwner == ownerId);
 
             if (!string.IsNullOrWhiteSpace(search)) {
-                baseQuery = baseQuery.Where(i => i.AzureImageAPIInfo != null && i.AzureImageAPIInfo.Contains(search));
+                baseQuery = baseQuery.Where(i => (i.AzureImageAPIInfo != null && 
+                                                 i.AzureImageAPIInfo.Contains(search)) ||
+                                                 i.DateAjout.ToString().Contains(search));
             }
 
             return Ok(baseQuery.OrderByDescending(i => i.DateEmail)

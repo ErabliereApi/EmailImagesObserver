@@ -4,9 +4,11 @@
 
 <p>Here you can manage and look at the data.</p>
 
-<div class="form-group">
+<div class="input-group mb-3">
     <input type="text" class="form-control" @bind="SearchTerms" placeholder="search" />
-    <button class="btn btn-primary" @onclick="TriggerSearch">Search</button>
+    <div class="input-group-append">
+        <button class="btn btn-primary" @onclick="TriggerSearch">Search</button>
+    </div>
 </div>
 
 <div class="table-responsive-sm">

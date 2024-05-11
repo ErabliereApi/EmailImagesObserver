@@ -18,7 +18,9 @@ public class ImageInfoService
 
         if (string.IsNullOrWhiteSpace(search) == false)
         {
-            query = query.Where(i => i.AzureImageAPIInfo != null && i.AzureImageAPIInfo.Contains(search));
+            query = query.Where(i => (i.AzureImageAPIInfo != null && 
+                                     i.AzureImageAPIInfo.Contains(search)) ||
+                                     i.DateAjout.ToString().Contains(search));
         }
 
         query = query.OrderByDescending(i => i.DateAjout);
