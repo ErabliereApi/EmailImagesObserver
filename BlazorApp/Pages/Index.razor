@@ -82,11 +82,18 @@ else
     {
         EmailState = await context.EmailStates.Where(e => e.Email == config["LoginInfo:EmailLogin"]).FirstOrDefaultAsync() ?? EmailState;
 
-        var client = AzureImageMLApi.Authenticate(loginInfo.Value);
+        try
+        {
+            var client = AzureImageMLApi.Authenticate(loginInfo.Value);
 
-        var models = await client.ListModelsAsync();
+            var models = await client.ListModelsAsync();
 
-        Models = models;
+            Models = models;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e.Message);
+        }
     }
 
     protected string GetSpaceUsed()

@@ -58,6 +58,16 @@ namespace BlazorApp.Controllers
                                .Take(take.Value));
         }
 
+        [HttpPost]
+        public async Task<IActionResult> PostImage([FromBody] ImageInfo postImage, CancellationToken token)
+        {
+            await _context.ImagesInfo.AddAsync(postImage, token);
+            
+            await _context.SaveChangesAsync(token);
+
+            return Ok(postImage);
+        }
+
         [HttpPatch("{id}")]
         public async Task<IActionResult> PatchImage(long id, [FromBody] ImageInfo patch, CancellationToken token)
         {
