@@ -7,6 +7,6 @@ public class ImageInfoConfiguration : IEntityTypeConfiguration<ImageInfo>
 {
     public void Configure(EntityTypeBuilder<ImageInfo> builder)
     {
-        
+        builder.Ignore(x => x.FlorenceResults);
     }
 }

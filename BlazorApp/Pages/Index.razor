@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using AzureComputerVision
 @using System.IO
+@using BlazorApp.Extension
 @using Microsoft.Azure.CognitiveServices.Vision.ComputerVision
 @using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models
 @using Microsoft.Extensions.Options
@@ -25,20 +26,22 @@ Welcome to email image observer app. Here you can watch info grab be the backgro
 }
 else
 {
-    <div class="row">
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Space used</h5>
-                <h6 class="card-subtitle mb-2 text-muted">@(config["Database:Provider"] ?? "InMemory")</h6>
-                <p class="card-text">@GetSpaceUsed()</p>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Space used</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">@(config["Database:Provider"] ?? "InMemory")</h6>
+                    <p class="card-text">@GetSpaceUsed()</p>
+                </div>
             </div>
-        </div>
 
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Email Sent</h5>
-                <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessageCount messages</h6>
-                <p class="card-text">@EmailState.MessagesCount images</p>
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Email Sent</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">@idleClient.MessageCount messages</h6>
+                    <p class="card-text">@EmailState.MessagesCount images</p>
+                </div>
             </div>
         </div>
     </div>
@@ -62,16 +65,20 @@ else
 
 <h2>Availlable models</h2>
 
-@if (Models != null)
-{
-    @foreach (var model in Models.ModelsProperty)
+<ul>
+    @if (Models != null)
     {
-        <ul>
+        @foreach (var model in Models.ModelsProperty)
+        {
+        
             <li>@model.Name</li>
-        </ul>
+        }
     }
-}
-
+    @if (config.UseFlorence2AI())
+    {
+        <li>Florence2</li>
+    }
+</ul>
 @code 
 {
     public Data.EmailStates EmailState { get; set; } = new Data.EmailStates();

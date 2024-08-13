@@ -124,8 +124,16 @@ namespace BlazorApp.Pages
 
         public void Dispose()
         {
-            IdleClient.Unsubscribe(this);
+            Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                IdleClient.Unsubscribe(this);
+            }
         }
     }
 }

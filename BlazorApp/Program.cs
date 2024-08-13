@@ -1,4 +1,5 @@
 using BlazorApp;
+using BlazorApp.Extension;
 using BlazorApp.HostDecorator;
 
 Console.Out.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
@@ -20,6 +21,13 @@ try
                    })
                    .Build()
                    .WithIdleClient();
+
+    var config = host.Services.GetRequiredService<IConfiguration>();
+
+    if (config.UseFlorence2AI())
+    {
+        host = host.WithFlorenceAI();
+    }
 
     host.Run();
 }

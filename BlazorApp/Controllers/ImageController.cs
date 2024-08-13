@@ -49,8 +49,8 @@ namespace BlazorApp.Controllers
 
             if (!string.IsNullOrWhiteSpace(search)) {
                 baseQuery = baseQuery.Where(i => (i.AzureImageAPIInfo != null && 
-                                                 i.AzureImageAPIInfo.Contains(search)) ||
-                                                 i.DateAjout.ToString().Contains(search));
+                                                  i.AzureImageAPIInfo.Contains(search)) ||
+                                                  i.DateAjout.ToString().Contains(search));
             }
 
             return Ok(baseQuery.OrderByDescending(i => i.DateEmail)

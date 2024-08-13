@@ -5,21 +5,19 @@ using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ComposableAsync;
 using RateLimiter;
 using BlazorApp.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace BlazorApp.AzureComputerVision;
 
 /// <summary>
 /// Helper class for AzureImageMLApi
 /// </summary>
-public class AzureImageMLApi
+public class AzureImageMLApi : AIAlerteService
 {
     static readonly CountByIntervalAwaitableConstraint minuteTimeConstraint = new(20, TimeSpan.FromMinutes(1));
     static readonly CountByIntervalAwaitableConstraint daysTimeConstraint = new(5000, TimeSpan.FromDays(1));
     static readonly TimeLimiter azureFreeTimeConstraint = TimeLimiter.Compose(minuteTimeConstraint, daysTimeConstraint);
-    private readonly Data.BlazorDbContext _context;
+    private readonly BlazorDbContext _context;
     private readonly ILogger<AzureImageMLApi> _logger;
-    private readonly AlerteClient alerteClient;
 
     /// <summary>
     /// Get an authenticated <see cref="ComputerVisionClient" />
@@ -34,11 +32,11 @@ public class AzureImageMLApi
         return client;
     }
 
-    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger, AlerteClient alerteClient)
+    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger, AlerteClient alerteClient) :
+        base(context, logger, alerteClient)
     {
         _context = context;
         _logger = logger;
-        this.alerteClient = alerteClient;
     }
 
     /// <summary>
@@ -87,6 +85,7 @@ public class AzureImageMLApi
             var jsonResult = JsonSerializer.Serialize(results);
 
             imageInfo.AzureImageAPIInfo = jsonResult;
+            imageInfo.AITypes += "AzureImageML;";
 
             _logger.LogInformation(jsonResult);
 
@@ -107,65 +106,6 @@ public class AzureImageMLApi
         catch (Exception? e)
         {
             _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
-        }
-    }
-
-    private async Task SendAlerteAsync(ImageInfo imageInfo, string jsonResult, CancellationToken token)
-    {
-        var alertes = await _context.Alertes
-            .Where(a => a.ExternalOwnerId == null || a.ExternalOwnerId == imageInfo.ExternalOwner.ToString())
-            .ToArrayAsync(token);
-
-        var anyAlerte = false;
-
-        foreach (var alerte in alertes)
-        {
-            if (alerte.Keywords == null)
-            {
-                continue;
-            }
-
-            var searchJson = jsonResult;
-
-            // first remove the RemoveKeywords for the json result
-            if (alerte.RemoveKeywords != null)
-            {
-                var removeKeywords = alerte.RemoveKeywords.Split(';');
-
-                foreach (var removeKeyword in removeKeywords)
-                {
-                    var originLength = searchJson.Length;
-                    searchJson = searchJson.Replace(removeKeyword, string.Empty, StringComparison.OrdinalIgnoreCase);
-                    if (originLength != searchJson.Length)
-                    {
-                        _logger.LogDebug("Keyword removed: {removeKeyword}", removeKeyword);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Keyword not found: {removeKeyword}", removeKeyword);
-                    }
-                }
-            }
-
-            var keywords = alerte.Keywords.Split(';');
-
-            foreach (var keyword in keywords)
-            {
-                if (searchJson.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                {
-                    await alerteClient.SendAlertAsync(alerte, imageInfo, token);
-                    anyAlerte = true;
-                }
-            }
-        }
-
-        if (anyAlerte)
-        {
-            _logger.LogInformation("Alerte was sent");
-        }
-        else
-        {
-            _logger.LogInformation("No alerte was sent");
         }
     }
 }

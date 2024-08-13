@@ -28,13 +28,13 @@ public class AlerteClient
     /// <summary>
     /// Send an alert using both email and SMS
     /// </summary>
-    public async Task SendAlertAsync(Alerte alerte, object _donnee, CancellationToken token)
+    public async Task SendAlertAsync(Alerte alerte, object _donnee, string? keyword, CancellationToken token)
     {
-        await SendEmailAlert(alerte, _donnee, token);
-        await SendSMSAlert(alerte, _donnee, token);
+        await SendEmailAlert(alerte, _donnee, keyword, token);
+        await SendSMSAlert(alerte, _donnee, keyword, token);
     }
 
-    private async Task SendEmailAlert(Alerte alerte, object _donnee, CancellationToken token)
+    private async Task SendEmailAlert(Alerte alerte, object _donnee, string? keyword, CancellationToken token)
     {
         if (!config.SendEmailAlertIsConfigured)
         {
@@ -56,7 +56,7 @@ public class AlerteClient
                 mailMessage.Subject = $"Alerte ID : {alerte.Id}";
                 mailMessage.Body = new TextPart("plain")
                 {
-                    Text = FormatTextMessage(alerte, _donnee)
+                    Text = FormatTextMessage(alerte, _donnee, keyword)
                 };
 
                 await emailService.SendEmailAsync(mailMessage, CancellationToken.None);
@@ -68,7 +68,7 @@ public class AlerteClient
         }
     }
 
-    private async Task SendSMSAlert(Alerte alerte, object _donnee, CancellationToken token)
+    private async Task SendSMSAlert(Alerte alerte, object _donnee, string? keyword, CancellationToken token)
     {
         if (!config.SendSMSAlertIsConfigured)
         {
@@ -81,7 +81,7 @@ public class AlerteClient
         {
             if (alerte.TextTo != null)
             {
-                var message = FormatTextMessage(alerte, _donnee);
+                var message = FormatTextMessage(alerte, _donnee, keyword);
 
                 foreach (var destinataire in alerte.TextTo.Split(';'))
                 {
@@ -95,8 +95,8 @@ public class AlerteClient
         }
     }
 
-    private string FormatTextMessage(Alerte alerte, object donnee)
+    private string FormatTextMessage(Alerte alerte, object donnee, string? keyword)
     {
-        return $"Alerte ID : {alerte.Id}\n{alerte.Title}\n{donnee}";
+        return $"Alerte ID : {alerte.Id}\n{alerte.Title}\n{donnee}\nKeyword: {keyword}";
     }
 }

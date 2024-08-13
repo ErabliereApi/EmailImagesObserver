@@ -16,7 +16,7 @@ public class ImageInfoService
     {
         IQueryable<ImageInfo> query = _context.ImagesInfo.AsNoTracking();
 
-        if (string.IsNullOrWhiteSpace(search) == false)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(i => (i.AzureImageAPIInfo != null && 
                                      i.AzureImageAPIInfo.Contains(search)) ||
@@ -40,7 +40,7 @@ public class ImageInfoService
 
     public ValueTask<ImageInfo?> GetImageInfoAsync(long id)
     {
-        return _context.ImagesInfo.FindAsync(new object?[] { id });
+        return _context.ImagesInfo.FindAsync([id]);
     }
 
     public async Task DeleteImageInfoAsync(long id)

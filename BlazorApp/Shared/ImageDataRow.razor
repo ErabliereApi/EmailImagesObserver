@@ -4,8 +4,8 @@
 <tr id="imageinfo-@imageInfo.Id">
     <td class="">@imageInfo.Id</td>
     <td>@FormatDateTime(imageInfo.DateEmail)</td>
-    <td class="">@imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
-    <td class="">@imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b))</td>
+    <td class="">@caption</td>
+    <td class="">@tags</td>
     <td>
         <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo?.Id)')" />
     </td>
@@ -21,7 +21,12 @@
 
 @code {
     public long id => imageInfo.Id;
+
     public string title => "Delete image info " + id;
+
+    public string? caption { get; set; }
+
+    public string? tags { get; set; }
 
     [Parameter]
     public Data.ImageInfo imageInfo { get; set; } = new Data.NullImageInfo();
@@ -32,5 +37,23 @@
     public string FormatDateTime(DateTimeOffset? date)
     {
         return TimezoneService.ToPrettyLocalDate(date);
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if (imageInfo.AITypes.Contains("Azure"))
+        {
+            caption = imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+
+            tags = imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+        }
+        else if (imageInfo.AITypes.Contains("Florence"))
+        {
+            caption = imageInfo.FlorenceResults?.Select(a => a.PureText).DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+
+            tags = imageInfo.FlorenceResults?.Where(f => f.Polygons != null).SelectMany(a => a.Polygons).Select(p => p.Label).DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+        }
     }
 }

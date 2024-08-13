@@ -1,6 +1,12 @@
 ﻿@page "/imageanalysisdetails/{id}"
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using Florence2
+@using SixLabors.Fonts
+@using SixLabors.ImageSharp
+@using SixLabors.ImageSharp.Drawing.Processing
+@using SixLabors.ImageSharp.PixelFormats
+@using SixLabors.ImageSharp.Processing
 @inject ImageInfoService imageService
 
 <h3>Image Analysis Details</h3>
@@ -10,7 +16,9 @@
 {
     <div class="row">
         <div class="col-md-6">
-            <img src="data:image/png;base64,@Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>())" class="img-fluid" />
+            <img src="data:image/png;base64,@GetImagesBase64WithBoxes(ImageInfo)" class="img-fluid" />
+        </div>
+        <div class="col-md-6">
             <dl>
                 <dt>Id</dt>
                 <dd>@ImageInfo?.Id</dd>
@@ -28,13 +36,16 @@
                 <dd>@ImageInfo?.DateAjout</dd>
                 <dt>Date Email</dt>
                 <dd>@ImageInfo?.DateEmail</dd>
+                <dt>AI Types</dt>
+                <dd>@ImageInfo?.AITypes</dd>
             </dl>
         </div>
-        <div class="col-md-6">
-            <pre class="text">
-                @GetFormatedJson(ImageInfo?.ImageAnalysis)
-            </pre>
-        </div>
+    </div>
+    <div class="border-info border rounded">
+        <h6>Json info:</h6>
+        <pre class="text" style="max-width: 1200px; overflow: scroll;">
+            @GetFormatedJson(ImageInfo)
+                    </pre>
     </div>
 }
 else
@@ -53,12 +64,191 @@ else
         ImageInfo = await imageService.GetImageInfoAsync(long.Parse(Id));
     }
 
-    private string GetFormatedJson(object? imageInfo)
+    private string GetFormatedJson(Data.ImageInfo? imageInfo)
     {
-        return JsonSerializer.Serialize(imageInfo, new JsonSerializerOptions
+        object? toSerialize = null;
+
+        if (imageInfo?.AITypes.Contains("Azure") == true)
+        {
+            toSerialize = imageInfo.ImageAnalysis;
+        } 
+        else if (imageInfo?.AITypes.Contains("Florence") == true) 
+        {
+            toSerialize = imageInfo.FlorenceResults;
+        }
+
+        return JsonSerializer.Serialize(toSerialize, new JsonSerializerOptions
         {
             WriteIndented = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         });
+    }
+
+    private string GetImagesBase64WithBoxes(Data.ImageInfo imageInfo)
+    {
+        var imageBase64 = string.Empty;
+
+        if (imageInfo?.Images is null) return imageBase64;
+
+        if (imageInfo?.AITypes?.Contains("Florence") == true && imageInfo.FlorenceResults != null)
+        {
+            using var stream = new MemoryStream(imageInfo.Images);
+
+            var imageMutated = DrawInline(stream, TaskTypes.REGION_TO_DESCRIPTION, "", imageInfo.FlorenceResults);
+
+            if (imageMutated is object)
+            {
+                using var imageStream = new MemoryStream();
+                imageMutated.SaveAsPng(imageStream);
+                imageBase64 = Convert.ToBase64String(imageStream.ToArray());
+            }
+
+            imageMutated?.Dispose();
+        }
+
+        if (string.IsNullOrEmpty(imageBase64))
+        {
+            imageBase64 = Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>());
+        }
+
+        return imageBase64;
+    }
+
+    private static Lazy<FontFamily> DefaultFont = new Lazy<FontFamily>(() => GetDefaultFont());
+
+    private static Image<Rgba32>? DrawInline(Stream imgStreamResult, TaskTypes task, string userText, FlorenceResults[] results, string? outFolder = null)
+    {
+        if (!results.Any(r => (r.OCRBBox is object && r.OCRBBox.Any())
+         || (r.BoundingBoxes is object && r.BoundingBoxes.Any())
+         || (r.Polygons is object && r.Polygons.Any()))) return null;
+
+        outFolder ??= Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+        var penBox = Pens.Solid(Color.Red, 1.0f);
+
+        if (Florence2Model.TaskPromptsWithoutInputsDict.ContainsKey(task))
+        {
+            userText = "";
+        }
+
+        var fontFamily = DefaultFont.Value;
+        var font = fontFamily.CreateFont(12, FontStyle.Italic);
+
+        var image = Image.Load<Rgba32>(imgStreamResult);
+
+        image.Mutate(x =>
+        {
+            for (var index = 0; index < results.Length; index++)
+            {
+                var finalResult = results[index];
+
+                if (finalResult.BoundingBoxes is object)
+                {
+                    var i = 0;
+
+                    foreach (var bbox1 in finalResult.BoundingBoxes)
+                    {
+                        PointF? labelPoint = null;
+
+                        foreach (var bboxBBox in bbox1.BBoxes)
+                        {
+                            var polygon = new List<PointF>();
+                            var p = new PointF(bboxBBox.xmin, bboxBBox.ymin);
+
+                            labelPoint ??= p;
+
+                            polygon.Add(p);
+                            polygon.Add(new PointF(bboxBBox.xmin, bboxBBox.ymax));
+                            polygon.Add(new PointF(bboxBBox.xmax, bboxBBox.ymax));
+                            polygon.Add(new PointF(bboxBBox.xmax, bboxBBox.ymin));
+
+                            x.DrawPolygon(penBox, polygon.ToArray());
+
+                        }
+
+                        var label = bbox1.Label;
+                        x.DrawText(label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
+                        i++;
+                    }
+
+                }
+
+                if (finalResult.OCRBBox is object)
+                {
+                    foreach (var labledOcr in finalResult.OCRBBox)
+                    {
+                        var polygon = labledOcr.QuadBox.Select(e => new PointF(e.x, e.y)).ToArray();
+                        x.DrawPolygon(penBox, polygon);
+                        var textZero = polygon.First();
+                        x.DrawText(labledOcr.Text, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), textZero);
+
+                    }
+                }
+
+                if (finalResult.Polygons is object)
+                {
+                    foreach (var finalResultPolygon in finalResult.Polygons)
+                    {
+                        PointF? labelPoint = null;
+
+                        if (finalResultPolygon.Polygon is object)
+                        {
+                            var polygon1 = finalResultPolygon.Polygon.Select(e =>
+                            {
+                                var p = new PointF(e.x, e.y);
+                                labelPoint ??= p;
+                                return p;
+                            }).ToArray();
+                            x.DrawPolygon(penBox, polygon1);
+                        }
+
+                        if (finalResultPolygon.BBoxes is object)
+                        {
+                            foreach (var bboxBBox in finalResultPolygon.BBoxes)
+                            {
+                                var polygon = new List<PointF>();
+                                var p = new PointF(bboxBBox.xmin, bboxBBox.ymin);
+
+                                labelPoint ??= p;
+
+                                polygon.Add(p);
+                                polygon.Add(new PointF(bboxBBox.xmin, bboxBBox.ymax));
+                                polygon.Add(new PointF(bboxBBox.xmax, bboxBBox.ymax));
+                                polygon.Add(new PointF(bboxBBox.xmax, bboxBBox.ymin));
+
+                                x.DrawPolygon(penBox, polygon.ToArray());
+
+                            }
+                        }
+
+                        x.DrawText(finalResultPolygon.Label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
+                    }
+                }
+
+            }
+        });
+
+        return image;
+    }
+
+    private static FontFamily GetDefaultFont()
+    {
+        FontFamily? best = null;
+
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+        {
+            best = SystemFonts.Get("Arial");
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            best = SystemFonts.TryGet("Arial", out var arial) ? arial :
+                SystemFonts.TryGet("Ubuntu", out var sf) ? sf :
+                SystemFonts.TryGet("Liberation Sans", out var ls) ? ls :
+                SystemFonts.TryGet("DejaVu Sans", out var dvs) ? dvs :
+                SystemFonts.TryGet("Rasa", out var rasa) ? rasa :
+                SystemFonts.TryGet("FreeSans", out var fs) ? fs :
+                                                                    null;
+        }
+        return best ?? SystemFonts.Families.FirstOrDefault(f => f.Name.Contains("Sans"), SystemFonts.Families.First());
     }
 }

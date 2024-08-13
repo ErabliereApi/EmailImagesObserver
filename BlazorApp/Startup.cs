@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web.UI;
 using Microsoft.Extensions.Logging.Console;
 using MailKit.Net.Smtp;
+using Florence2;
 
 namespace BlazorApp;
 
@@ -93,6 +94,11 @@ public class Startup
         services.AddSingleton<ISmtpClient>(sp => new SmtpClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IEmailService, ErabliereApiEmailService>();
         services.AddSingleton<ISMSService, TwilioSMSService>();
+
+        // Florence2
+        services.AddSingleton(sp => new FlorenceModelDownloader("./models"));
+        services.AddSingleton(sp => new Florence2Model(sp.GetRequiredService<FlorenceModelDownloader>()));
+        services.AddTransient<Florence2LocalModel>();
 
         // Database
         services.AddDbContext<BlazorDbContext>(options =>

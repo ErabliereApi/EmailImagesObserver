@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
+﻿using Florence2;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -40,6 +41,10 @@ public class ImageInfo : IComparable<ImageInfo>
 
     public EmailStates? EmailStates { get; set; }
 
+    [MaxLength(255)]
+    public string AITypes { get; set; } = string.Empty;
+
+
     private ImageAnalysis? _imagesAnalysis;
 
     [JsonIgnore]
@@ -60,6 +65,29 @@ public class ImageInfo : IComparable<ImageInfo>
             }
 
             return _imagesAnalysis;
+        }
+    }
+
+    private FlorenceResults[]? _florenceResult;
+
+    [JsonIgnore]
+    public FlorenceResults[]? FlorenceResults 
+    {
+        get
+        {
+            if (_florenceResult == null && AzureImageAPIInfo != null)
+            {
+                try
+                {
+                    _florenceResult = JsonSerializer.Deserialize<FlorenceResults[]>(AzureImageAPIInfo);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine(e);
+                }
+            }
+
+            return _florenceResult;
         }
     }
 

@@ -9,6 +9,8 @@ using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using BlazorApp.Extension;
+using Florence2;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -78,7 +80,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 // Gmail uses the [Gmail]/Sent Mail folder
                 _sentFolder = _imapClient.GetFolder(SpecialFolder.Sent);
 
-                _logger?.LogInformation(_sentFolder.ToString());
+                _logger?.LogInformation(_sentFolder?.ToString());
             }
             else
             {
@@ -491,8 +493,25 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await ParseAndSaveImageAsync(imageString, imageInfo, token);
                 }
 
-                using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
-                await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers);
+                if (_config.UseFlorence2AI())
+                {
+                    var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
+
+                    while (!modelSource.IsReady)
+                    {
+                        await Task.Delay(5000);
+                    }
+
+                    var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
+                    var florence2Local = _scoped.ServiceProvider.GetRequiredService<Florence2LocalModel>();
+
+                    await florence2Local.AnalyzeImageAsync(modelSession, imageInfo, _observers, token);
+                }
+                else
+                {
+                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
+                    await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
+                }
 
                 if (_emailStateDb != null)
                 {
@@ -571,8 +590,25 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
 
-                using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
-                await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
+                    if (_config.UseFlorence2AI())
+                {
+                    var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
+
+                    while (!modelSource.IsReady)
+                    {
+                        await Task.Delay(5000);
+                    }
+
+                    var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
+                    var florence2Local = _scoped.ServiceProvider.GetRequiredService<Florence2LocalModel>();
+
+                    await florence2Local.AnalyzeImageAsync(modelSession, imageInfo, _observers, token);
+                }
+                else
+                {
+                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
+                    await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
+                }
 
                 if (_emailStateDb != null)
                 {

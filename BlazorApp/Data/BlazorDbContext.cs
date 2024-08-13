@@ -43,4 +43,10 @@ public class BlazorDbContext : DbContext
 
         return saved;
     }
+
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(BlazorDbContext).Assembly);
+    }
 }
