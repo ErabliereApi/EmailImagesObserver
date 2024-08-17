@@ -1,6 +1,7 @@
 ﻿using BlazorApp.Data;
 using Florence2;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace BlazorApp.AzureComputerVision;
@@ -9,12 +10,14 @@ public class Florence2LocalModel : AIAlerteService
 {
     private readonly ILogger<Florence2LocalModel> _logger;
     private readonly BlazorDbContext _context;
+    private readonly IConfiguration _config;
 
-    public Florence2LocalModel(ILogger<Florence2LocalModel> logger, BlazorDbContext context, AlerteClient alerteClient)
+    public Florence2LocalModel(ILogger<Florence2LocalModel> logger, BlazorDbContext context, AlerteClient alerteClient, IConfiguration config)
         : base(context, logger, alerteClient)
     {
         _logger = logger;
         _context = context;
+        _config = config;
     }
 
     public async Task AnalyzeImageAsync(Florence2Model modelSession, Data.ImageInfo imageInfo, ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, CancellationToken token = default)
@@ -30,21 +33,31 @@ public class Florence2LocalModel : AIAlerteService
             return;
         }
 
+        List<TaskTypes> tasks = GetFlorence2TaskTypesConfigure();
+
         try
         {
             var results = new List<FlorenceResults>(15);
 
-            foreach (var task in Enum.GetValues<TaskTypes>())
+            int i = 1;
+            foreach (var task in tasks)
             {
-                _logger.LogInformation("Task: {Task}", task);
+                _logger.LogInformation("Task {I}: {Task}", i++, task);
 
                 using var stream = new MemoryStream(imageInfo.Images);
 
                 var singleResults = modelSession.Run(task, stream, textInput: "", CancellationToken.None);
 
-                results.AddRange(singleResults);
+                if (singleResults == null || singleResults.Length == 0)
+                {
+                    _logger.LogInformation("No results produce for TaskTypes: {TaskTypes}", task);
+                }
+                else
+                {
+                    results.AddRange(singleResults);
+                }
             }
-                
+
             var jsonResult = JsonSerializer.Serialize(results);
 
             imageInfo.AzureImageAPIInfo = jsonResult;
@@ -70,5 +83,36 @@ public class Florence2LocalModel : AIAlerteService
         {
             _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
         }
+    }
+
+    private List<TaskTypes> GetFlorence2TaskTypesConfigure()
+    {
+        var tasks = new List<TaskTypes>();
+
+        try
+        {
+            var configTypes = _config.GetValue<string>("USE_FLORENCE2_TASKTYPES")?.Split(',');
+
+            if (configTypes != null)
+            {
+                foreach (var t in configTypes)
+                {
+                    if (Enum.TryParse<TaskTypes>(t, out var result))
+                    {
+                        tasks.Add(result);
+                    }
+                }
+            }
+            else
+            {
+                tasks.AddRange(Enum.GetValues<TaskTypes>());
+            }
+        }
+        catch (Exception e)
+        {
+            tasks.AddRange(Enum.GetValues<TaskTypes>());
+        }
+
+        return tasks;
     }
 }
