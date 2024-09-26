@@ -73,7 +73,7 @@ public class Startup
         services.AddSingleton<IImapClient>(sp => new ImapClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IProtocolLogger>(sp =>
         {
-            if (HostEnvironment.IsDevelopment())
+            if (HostEnvironment.IsDevelopment() && string.Equals(Configuration["Logging:LogLevel:Default"], "Debug", StringComparison.OrdinalIgnoreCase))
             {
                 return new ProtocolLogger(Console.OpenStandardOutput());
             }
@@ -99,6 +99,9 @@ public class Startup
         services.AddSingleton(sp => new FlorenceModelDownloader("./models"));
         services.AddSingleton(sp => new Florence2Model(sp.GetRequiredService<FlorenceModelDownloader>()));
         services.AddTransient<Florence2LocalModel>();
+
+        // Ai background worker
+        services.AddSingleton<AIAnalysisQueue>();
 
         // Database
         services.AddDbContext<BlazorDbContext>(options =>

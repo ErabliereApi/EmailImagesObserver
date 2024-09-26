@@ -36,10 +36,12 @@ public class HostIdleClientExitManagment : IHost
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
         var client = Services.GetRequiredService<IdleClient>();
+        var aiQueue = Services.GetRequiredService<AIAnalysisQueue>();
 
         var host = _host.StartAsync(cancellationToken);
 
         _idleTask = client.RunAsync(cancellationToken);
+        _aiQueueTask = aiQueue.BackgroundProcessAsync(cancellationToken);
 
         return host;
     }
@@ -47,18 +49,26 @@ public class HostIdleClientExitManagment : IHost
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         var client = Services.GetRequiredService<IdleClient>();
+        var aiQueue = Services.GetRequiredService<AIAnalysisQueue>();
 
         client.Exit();
+        aiQueue.Exit();
 
         if (_idleTask != null)
         {
             await _idleTask;
         }
 
+        if (_aiQueueTask != null)
+        {
+            await _aiQueueTask;
+        }
+
         await _host.StopAsync(cancellationToken);
     }
 
     private Task? _idleTask;
+    private Task? _aiQueueTask;
 }
 
 public class HostFlorenceAI : IHost

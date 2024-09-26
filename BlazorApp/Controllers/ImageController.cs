@@ -1,11 +1,8 @@
-using BlazorApp.AzureComputerVision;
 using BlazorApp.Data;
-using BlazorApp.Extension;
-using Florence2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using BlazorApp.AzureComputerVision;
 
 namespace BlazorApp.Controllers
 {
@@ -16,17 +13,12 @@ namespace BlazorApp.Controllers
     public class ImageController : ControllerBase
     {
         private readonly BlazorDbContext _context;
-        private readonly LoginInfo _logginInfo;
-        private readonly IConfiguration _configuration;
+        private readonly AIAnalysisQueue _aIAnalysisQueue;
 
-        public ImageController(
-            BlazorDbContext context,
-            IOptions<LoginInfo> loginInfo,
-            IConfiguration configuration)
+        public ImageController(BlazorDbContext context, AIAnalysisQueue aIAnalysisQueue)
         {
             _context = context;
-            _logginInfo = loginInfo.Value;
-            _configuration = configuration;
+            _aIAnalysisQueue = aIAnalysisQueue;
         }
 
         [HttpGet]
@@ -82,21 +74,9 @@ namespace BlazorApp.Controllers
 
             if (analyseImage.HasValue && analyseImage.Value) 
             {
-                if (_configuration.UseFlorence2AI())
-                {
-                    var modelSession = HttpContext.RequestServices.GetRequiredService<Florence2Model>();
-                    var florence2 = HttpContext.RequestServices.GetRequiredService<Florence2LocalModel>();
+                _aIAnalysisQueue.Enqueue(postImage.Id);  
 
-                    await florence2.AnalyzeImageAsync(modelSession, postImage, null, token);
-                }
-                else
-                {
-                    var azureComputerVision = HttpContext.RequestServices.GetRequiredService<AzureImageMLApi>();
-
-                    var client = AzureImageMLApi.Authenticate(_logginInfo);
-
-                    await azureComputerVision.AnalyzeImageAsync(client, postImage, null, token);
-                }
+                return Accepted(postImage); 
             }
 
             return Ok(postImage);
