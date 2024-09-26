@@ -1,7 +1,11 @@
+using BlazorApp.AzureComputerVision;
 using BlazorApp.Data;
+using BlazorApp.Extension;
+using Florence2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BlazorApp.Controllers
 {
@@ -12,10 +16,17 @@ namespace BlazorApp.Controllers
     public class ImageController : ControllerBase
     {
         private readonly BlazorDbContext _context;
+        private readonly LoginInfo _logginInfo;
+        private readonly IConfiguration _configuration;
 
-        public ImageController(BlazorDbContext context)
+        public ImageController(
+            BlazorDbContext context,
+            IOptions<LoginInfo> loginInfo,
+            IConfiguration configuration)
         {
             _context = context;
+            _logginInfo = loginInfo.Value;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -59,11 +70,34 @@ namespace BlazorApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> PostImage([FromBody] ImageInfo postImage, CancellationToken token)
+        public async Task<IActionResult> PostImage(
+            [FromBody] ImageInfo postImage, 
+            [FromQuery] bool? analyseImage, 
+            [FromQuery] string? analysisType,
+            CancellationToken token)
         {
             await _context.ImagesInfo.AddAsync(postImage, token);
             
             await _context.SaveChangesAsync(token);
+
+            if (analyseImage.HasValue && analyseImage.Value) 
+            {
+                if (_configuration.UseFlorence2AI())
+                {
+                    var modelSession = HttpContext.RequestServices.GetRequiredService<Florence2Model>();
+                    var florence2 = HttpContext.RequestServices.GetRequiredService<Florence2LocalModel>();
+
+                    await florence2.AnalyzeImageAsync(modelSession, postImage, null, token);
+                }
+                else
+                {
+                    var azureComputerVision = HttpContext.RequestServices.GetRequiredService<AzureImageMLApi>();
+
+                    var client = AzureImageMLApi.Authenticate(_logginInfo);
+
+                    await azureComputerVision.AnalyzeImageAsync(client, postImage, null, token);
+                }
+            }
 
             return Ok(postImage);
         }

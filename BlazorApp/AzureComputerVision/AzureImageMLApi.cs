@@ -46,7 +46,11 @@ public class AzureImageMLApi : AIAlerteService
     /// <param name="imageInfo"></param>
     /// <param name="observer"></param>
     /// <returns></returns>
-    public async Task AnalyzeImageAsync(ComputerVisionClient client, Data.ImageInfo imageInfo, ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, CancellationToken token = default)
+    public async Task AnalyzeImageAsync(
+        ComputerVisionClient client, 
+        Data.ImageInfo imageInfo, 
+        ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, 
+        CancellationToken token = default)
     {
         _logger.LogInformation("----------------------------------------------------------");
         _logger.LogInformation("ANALYZE IMAGE - ATTACHMENT");

@@ -1,7 +1,6 @@
 ﻿using BlazorApp.Data;
 using Florence2;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace BlazorApp.AzureComputerVision;
@@ -110,6 +109,7 @@ public class Florence2LocalModel : AIAlerteService
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Error in GetFlorence2TaskTypesConfigure: {message}", e.Message);
             tasks.AddRange(Enum.GetValues<TaskTypes>());
         }
 
