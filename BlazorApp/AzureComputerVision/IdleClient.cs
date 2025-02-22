@@ -111,6 +111,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         try
         {
             await ReconnectAsync();
+            _logger.LogInformation("RunAsync: ReconnectAsync complete");
+            _logger.LogInformation("RunAsync: FetchMessageSummariesAsync");
             await FetchMessageSummariesAsync(print: false, analyseImage: CheckConfigDateAndThenUniqueId, token);
         }
         catch (OperationCanceledException ocEx)
@@ -122,6 +124,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         catch (Exception e)
         {
             _logger.LogCritical(e, "RunAsync Exception: {message}", e.Message);
+            _logger.LogError("RunAsync Exception: {stackTrace}", e.StackTrace);
             throw;
         }
 
@@ -634,17 +637,19 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                                                          m.SubFilter != null)
                                              .ToArrayAsync(token);
 
-        var textBody = item.TextBody.ToString();
+        var textBody = item.TextBody?.ToString();
 
         _logger.LogInformation("TextBody: {textBody}", textBody);
 
-        var map = mapping.FirstOrDefault(m => textBody.Contains(m.SubFilter ?? ""));
+        var map = mapping.FirstOrDefault(m => textBody?.Contains(m.SubFilter ?? "") == true);
 
         return map?.SubValue;
     }
 
     private async Task<Guid?> MapExternalOwnerOnSubject(string senderEmail, string subject, CancellationToken token)
     {
+        senderEmail = senderEmail.Trim();
+
         var mapping = _context.Mappings.Where(m => m.Filter == senderEmail);
 
         var map = await mapping.FirstOrDefaultAsync(m => m.Filter == senderEmail && m.Key == subject, token);
