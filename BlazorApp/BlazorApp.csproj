@@ -29,9 +29,9 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="RateLimiter" Version="2.2.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
-		<PackageReference Include="SixLabors.Fonts" Version="2.0.4" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
-		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
+		<PackageReference Include="SixLabors.Fonts" Version="2.1.2" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
 		<PackageReference Include="Twilio" Version="7.2.2" />
 	</ItemGroup>
 
