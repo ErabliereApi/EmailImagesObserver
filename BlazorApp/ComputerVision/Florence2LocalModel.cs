@@ -20,12 +20,9 @@ public class Florence2LocalModel : AIAlerteService
         _config = config;
     }
 
-    public async Task AnalyzeImageAsync(Florence2Model modelSession, Data.ImageInfo imageInfo, ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, CancellationToken token = default)
+    public async Task AnalyzeImageAsync(Florence2Model modelSession, ImageInfo imageInfo, ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, CancellationToken token = default)
     {
-        _logger.LogInformation("----------------------------------------------------------");
-        _logger.LogInformation("ANALYZE IMAGE - ATTACHMENT");
-        _logger.LogInformation(imageInfo.ToString());
-        _logger.LogInformation("");
+        _logger.LogInformation("--------------- ANALYZE IMAGE - ATTACHMENT -----------");
 
         if (imageInfo.Images == null)
         {
@@ -46,7 +43,7 @@ public class Florence2LocalModel : AIAlerteService
 
                 using var stream = new MemoryStream(imageInfo.Images);
 
-                var singleResults = modelSession.Run(task, stream, textInput: "", CancellationToken.None);
+                var singleResults = modelSession.Run(task, [stream], textInput: "", CancellationToken.None);
 
                 if (singleResults == null || singleResults.Length == 0)
                 {
