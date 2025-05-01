@@ -362,11 +362,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else
                 {
-                    _logger.LogInformation("Fetch message since startDate: {startDate}", _startDate);
+                    var startDateAjusted = _startDate.LocalDateTime;
+
+                    _logger.LogInformation("Fetch message since startDate: {startDate}", startDateAjusted);
 
                     using var searchTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-                    var dateFiter = MailKit.Search.SearchQuery.SentSince(_startDate.DateTime);
+                    var dateFiter = MailKit.Search.SearchQuery.SentSince(startDateAjusted);
 
                     var idList = await SentFolder.SearchAsync(dateFiter, searchTokenSource.Token);
 
