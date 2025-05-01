@@ -4,16 +4,18 @@ using BlazorApp.Data;
 using Florence2;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
+using BlazorApp.Model;
 
 namespace BlazorApp.AzureComputerVision;
 
-public class AIAnalysisQueue
+public class AIAnalysisQueue : IDisposable
 {
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private readonly IOptions<LoginInfo> _loginInfo;
     private readonly ILogger<AIAnalysisQueue> _logger;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _disposed;
 
     public AIAnalysisQueue(
         IConfiguration configuration,
@@ -53,6 +55,14 @@ public class AIAnalysisQueue
 
                             await florence2.AnalyzeImageAsync(modelSession, image, null, _cancellationTokenSource.Token);
                         }
+                        else if (_configuration.UseAzureVision())
+                        {
+                            var azureVision = scope.ServiceProvider.GetRequiredService<AzureVisionApi>();
+
+                            var client = AzureVisionApi.Authenticate(_loginInfo.Value);
+
+                            await azureVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
+                        }
                         else
                         {
                             var azureComputerVision = scope.ServiceProvider.GetRequiredService<AzureImageMLApi>();
@@ -82,5 +92,29 @@ public class AIAnalysisQueue
     public void Exit()
     {
         _cancellationTokenSource.Cancel();
+    }
+    
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _cancellationTokenSource.Dispose();
+            }
+
+            _disposed = true;
+        }
+    }
+
+    ~AIAnalysisQueue()
+    {
+        Dispose(false);
     }
 }

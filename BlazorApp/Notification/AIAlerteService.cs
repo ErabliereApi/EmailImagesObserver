@@ -1,7 +1,7 @@
 ﻿using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlazorApp.AzureComputerVision;
+namespace BlazorApp.Notification;
 
 public abstract class AIAlerteService
 {
@@ -9,7 +9,7 @@ public abstract class AIAlerteService
     private readonly ILogger<AIAlerteService> _logger;
     private readonly AlerteClient _alerteClient;
 
-    public AIAlerteService(Data.BlazorDbContext context, ILogger<AIAlerteService> logger, AlerteClient alerteClient)
+    protected AIAlerteService(Data.BlazorDbContext context, ILogger<AIAlerteService> logger, AlerteClient alerteClient)
     {
         _context = context;
         _logger = logger;
@@ -54,14 +54,13 @@ public abstract class AIAlerteService
             }
 
             var keywords = alerte.Keywords.Split(';');
-
-            foreach (var keyword in keywords)
+            
+            foreach (var keyword in from keyword in keywords
+                                    where searchJson.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                                    select keyword)
             {
-                if (searchJson.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                {
-                    await _alerteClient.SendAlertAsync(alerte, imageInfo, keyword, token);
-                    anyAlerte = true;
-                }
+                await _alerteClient.SendAlertAsync(alerte, imageInfo, keyword, token);
+                anyAlerte = true;
             }
         }
 

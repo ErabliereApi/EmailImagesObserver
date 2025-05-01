@@ -1,4 +1,5 @@
 ﻿using BlazorApp.Data;
+using BlazorApp.Notification;
 using Florence2;
 using System.Collections.Concurrent;
 using System.Text.Json;

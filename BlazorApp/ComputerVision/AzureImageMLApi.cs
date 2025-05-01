@@ -5,11 +5,14 @@ using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ComposableAsync;
 using RateLimiter;
 using BlazorApp.Data;
+using BlazorApp.Model;
+using BlazorApp.Notification;
 
 namespace BlazorApp.AzureComputerVision;
 
 /// <summary>
-/// Helper class for AzureImageMLApi
+/// AzureVision serivce using the Microsoft.Azure.CognitiveServices.Vision.ComputerVision nuget package.
+/// Developpement started in march 2025
 /// </summary>
 public class AzureImageMLApi : AIAlerteService
 {
@@ -52,8 +55,7 @@ public class AzureImageMLApi : AIAlerteService
         ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, 
         CancellationToken token = default)
     {
-        _logger.LogInformation("----------------------------------------------------------");
-        _logger.LogInformation("ANALYZE IMAGE - ATTACHMENT");
+        _logger.LogInformation("------------- ANALYZE IMAGE - ATTACHMENT ---------------");
         _logger.LogInformation(imageInfo.ToString());
         _logger.LogInformation("");
 

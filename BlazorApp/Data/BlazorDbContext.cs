@@ -1,5 +1,6 @@
 ﻿#nullable disable
 using Microsoft.EntityFrameworkCore;
+using BlazorApp.Model;
 namespace BlazorApp.Data;
 
 public class BlazorDbContext : DbContext

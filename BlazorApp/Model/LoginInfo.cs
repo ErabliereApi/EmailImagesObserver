@@ -1,4 +1,4 @@
-namespace BlazorApp.AzureComputerVision;
+namespace BlazorApp.Model;
 
 /// <summary>
 /// Class with properties to authenticate and communicate to

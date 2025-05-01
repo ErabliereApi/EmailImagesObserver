@@ -1,4 +1,6 @@
-﻿using Florence2;
+﻿using Azure.AI.Vision.ImageAnalysis;
+using BlazorApp.Model;
+using Florence2;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -45,18 +47,25 @@ public class ImageInfo : IComparable<ImageInfo>
     public string AITypes { get; set; } = string.Empty;
 
 
-    private ImageAnalysis? _imagesAnalysis;
+    private (SerializableImageAnalysisResult?, ImageAnalysis?)? _imagesAnalysis;
 
     [JsonIgnore]
-    public ImageAnalysis? ImageAnalysis
+    public (SerializableImageAnalysisResult?, ImageAnalysis?)? ImageAnalysis
     {
         get
         {
-            if (_imagesAnalysis == null && AzureImageAPIInfo != null)
+            if (_imagesAnalysis.HasValue)
             {
                 try
                 {
-                    _imagesAnalysis = JsonSerializer.Deserialize<ImageAnalysis>(AzureImageAPIInfo);
+                    if (AzureImageAPIInfo != null) 
+                    {
+                        _imagesAnalysis = (
+                            AITypes.Contains("AzureImageMLV2") ? JsonSerializer.Deserialize<SerializableImageAnalysisResult>(AzureImageAPIInfo) : null,
+                            AITypes.Contains("AzureImageML") ? JsonSerializer.Deserialize<ImageAnalysis>(AzureImageAPIInfo) : null
+                        );
+                    }
+                        
                 }
                 catch (Exception e)
                 {

@@ -2,8 +2,6 @@
 @using AzureComputerVision
 @using System.IO
 @using BlazorApp.Extension
-@using Microsoft.Azure.CognitiveServices.Vision.ComputerVision
-@using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models
 @using Microsoft.Extensions.Options
 @inject IdleClient idleClient
 @inject IConfiguration config
@@ -68,10 +66,10 @@ else
 <ul>
     @if (Models != null)
     {
-        @foreach (var model in Models.ModelsProperty)
+        @foreach (var model in Models)
         {
-        
-            <li>@model.Name</li>
+
+            <li>@model</li>
         }
     }
     @if (config.UseFlorence2AI())
@@ -83,7 +81,7 @@ else
 {
     public Data.EmailStates EmailState { get; set; } = new Data.EmailStates();
 
-    public ListModelsResult? Models { get; set; }
+    public List<string>? Models { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,9 +91,9 @@ else
         {
             var client = AzureImageMLApi.Authenticate(loginInfo.Value);
 
-            var models = await client.ListModelsAsync();
+            var models = client.ToString();
 
-            Models = models;
+            Models = [models];
         }
         catch (Exception e)
         {

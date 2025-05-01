@@ -1,4 +1,5 @@
-﻿@inject UrlService urlService
+﻿@using Azure.AI.Vision.ImageAnalysis
+@inject UrlService urlService
 @inject TimezoneService TimezoneService
 
 <tr id="imageinfo-@imageInfo.Id">
@@ -10,12 +11,12 @@
         <img id="@string.Concat("image-id-", imageInfo.Id)" src="data:image/png;base64,@Convert.ToBase64String(imageInfo?.Images ?? Array.Empty<byte>())" class="img-thumbnail trigger-modal" onclick="window.showImageModal('@string.Concat("image-id-", imageInfo?.Id)')" />
     </td>
     <td>
-       <NavLink class="btn btn-primary" href="@urlService.Url($"/imageanalysisdetails/{imageInfo?.Id}")">
-           Details
-       </NavLink>
-       <AuthorizeView>
-           <button @onclick="@(async () => await ConfirmDelete.Invoke(id, title))" class="btn btn-danger">Delete</button>
-       </AuthorizeView>
+        <NavLink class="btn btn-primary" href="@urlService.Url($"/imageanalysisdetails/{imageInfo?.Id}")">
+            Details
+        </NavLink>
+        <AuthorizeView>
+            <button @onclick="@(async () => await ConfirmDelete.Invoke(id, title))" class="btn btn-danger">Delete</button>
+        </AuthorizeView>
     </td>
 </tr>
 
@@ -43,11 +44,30 @@
     {
         base.OnInitialized();
 
-        if (imageInfo.AITypes.Contains("Azure"))
+        if (imageInfo.AITypes.Contains("AzureImageMLV2"))
         {
-            caption = imageInfo.ImageAnalysis?.Description.Captions.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+            var data = imageInfo.ImageAnalysis;
 
-            tags = imageInfo.ImageAnalysis?.Description.Tags.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+            if (data.HasValue && data.Value.Item1 != null)
+            {
+                var mlv2data = data.Value.Item1;
+
+                caption = mlv2data.Caption?.Text + " " + (mlv2data.Caption?.Confidence != null ? Math.Round(mlv2data.Caption.Confidence, 2) * 100 + "%" : "");
+
+                if (mlv2data.Tags?.Values.Count > 0)
+                {
+                    tags = (mlv2data.Tags.Values as IEnumerable<DetectedTag>)?.Aggregate<DetectedTag, string>("", (a, b) => string.Concat(a, ", ", b.Name));
+                }
+            }
+            
+        }
+        else if (imageInfo.AITypes.Contains("AzureImageML"))
+        {
+            var data = imageInfo.ImageAnalysis.HasValue ? imageInfo.ImageAnalysis.Value.Item2 : null;
+
+            caption = (data?.Description.Captions as IEnumerable<dynamic>)?.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
+
+            tags = (data?.Description.Tags as IEnumerable<dynamic>)?.DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
         }
         else if (imageInfo.AITypes.Contains("Florence"))
         {

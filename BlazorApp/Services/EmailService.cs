@@ -3,7 +3,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
-using BlazorApp.AzureComputerVision;
+using BlazorApp.Model;
 
 namespace BlazorApp.Services;
 
@@ -54,7 +54,7 @@ public class ErabliereApiEmailService : IEmailService
     /// <inheritdoc />
     public async Task SendEmailAsync(MimeMessage message, CancellationToken token)
     {
-        if (_smtpClient.IsConnected == false)
+        if (!_smtpClient.IsConnected)
         {
             await _smtpClient.ConnectAsync(_config.SmtpServer, _config.SmtpPort, SecureSocketOptions.StartTls, token);
         }
@@ -101,7 +101,7 @@ public class ErabliereApiEmailService : IEmailService
         }
         catch
         {
-            _logger.LogWarning($"Authentication unsuccessful with token: {authToken.AccessToken}");
+            _logger.LogWarning("Authentication unsuccessful with token: {AccessToken}", authToken.AccessToken);
             throw;
         }
     }

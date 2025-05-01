@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace BlazorApp.Model;
+
 public class Alerte
 {
     /// <summary>

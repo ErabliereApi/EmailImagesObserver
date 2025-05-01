@@ -11,6 +11,9 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.Extensions.Logging.Console;
 using MailKit.Net.Smtp;
 using Florence2;
+using BlazorApp.Model;
+using BlazorApp.Notification;
+using BlazorApp.ComputerVision;
 
 namespace BlazorApp;
 
@@ -89,7 +92,8 @@ public class Startup
         services.AddOptions();
 
         // AzureImageML
-        services.AddScoped<AzureImageMLApi>();
+        services.AddScoped<AzureImageMLApi>(); // V1
+        services.AddScoped<AzureVisionApi>(); // V2
         services.AddSingleton<AlerteClient>();
         services.AddSingleton<ISmtpClient>(sp => new SmtpClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IEmailService, ErabliereApiEmailService>();
@@ -103,17 +107,19 @@ public class Startup
         // Ai background worker
         services.AddSingleton<AIAnalysisQueue>();
 
+        services.AddSingleton<CustomLocalModel>(new CustomLocalModel(Configuration["CUSTOM_LOCAL_MODEL"]));
+
         // Database
         services.AddDbContext<BlazorDbContext>(options =>
         {
-            if (Configuration["Database:Provider"] == "Sql")
+            if (Configuration.DatabaseProvider() == "Sql")
             {
                 options.UseSqlServer(Configuration.GetConnectionString("Sql"), options =>
                 {
                     options.EnableRetryOnFailure();
                 });
             }
-            else if (Configuration["Database:Provider"] == "Sqlite")
+            else if (Configuration.DatabaseProvider() == "Sqlite")
             {
                 options.UseSqlite(Configuration.GetConnectionString("Sqlite"));
             }
@@ -129,7 +135,7 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
     {
-        if (Configuration["Database:Provider"] == "Sql" || Configuration["Database:Provider"] == "Sqlite")
+        if (Configuration.DatabaseProvider() == "Sql" || Configuration.DatabaseProvider() == "Sqlite")
 {
             var database = serviceProvider.GetRequiredService<BlazorDbContext>();
 

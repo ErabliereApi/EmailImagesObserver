@@ -1,4 +1,4 @@
-﻿namespace BlazorApp.AzureComputerVision;
+﻿namespace BlazorApp.Model;
 
 public class CallShortMemoryContext
 {

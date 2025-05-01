@@ -3,7 +3,6 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
 using MimeKit;
-using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using System.Text;
 using BlazorApp.Data;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +10,7 @@ using Microsoft.Extensions.Options;
 using System.Text.Json;
 using BlazorApp.Extension;
 using Florence2;
+using BlazorApp.Model;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -202,7 +202,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             {
                 await WaitForNewMessagesAsync();
 
-                _logger.LogInformation("IdleAsync: messagesArrived: {messagesArrived}", messagesArrived);
+                _logger.LogInformation("IdleAsync: messagesArrived: {MessagesArrived}", messagesArrived);
 
                 if (messagesArrived)
                 {
@@ -214,9 +214,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     }
                     else
                     {
-                        var rate = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0;
+                        var rate = _callMemory.Count(c => !c.WasDiscarded) / 10.0;
 
-                        _logger.LogWarning("DiscardingRateLimiter apply. Rate is {rate}", rate);
+                        _logger.LogWarning("DiscardingRateLimiter apply. Rate is {Rate}", rate);
 
                         await Task.Delay(TimeSpan.FromSeconds(10), token);
                     }
@@ -229,7 +229,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         } while (!_tokenSource.IsCancellationRequested);
     }
 
-    private List<CallShortMemoryContext> _callMemory = new List<CallShortMemoryContext>();
+    private readonly List<CallShortMemoryContext> _callMemory = new List<CallShortMemoryContext>();
 
     private bool CheckDiscardingRateLimiter()
     {
@@ -247,7 +247,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
             }
 
-            var analyse = _callMemory.Where(c => !c.WasDiscarded).Count() / 10.0 < rateLimiter.Value;
+            var analyse = _callMemory.Count(c => !c.WasDiscarded) / 10.0 < rateLimiter.Value;
 
             _callMemory.Add(new CallShortMemoryContext
             {
@@ -307,7 +307,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 ImageInfo? imageInfo = null;
 
-                if (await _context.ImagesInfo.AnyAsync(token))
+                var anyImageInfo = await _context.ImagesInfo.AnyAsync(token);
+
+                if (anyImageInfo)
                 {
                     imageInfo = await _context.ImagesInfo
                         .OrderByDescending(i => i.DateEmail)
@@ -364,7 +366,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     using var searchTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-                    var idList = await SentFolder.SearchAsync(MailKit.Search.SearchQuery.SentSince(_startDate.DateTime), searchTokenSource.Token);
+                    var dateFiter = MailKit.Search.SearchQuery.SentSince(_startDate.DateTime);
+
+                    var idList = await SentFolder.SearchAsync(dateFiter, searchTokenSource.Token);
 
                     _logger.LogInformation("idList: {idList}", idList.Count);
 
@@ -512,7 +516,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else
                 {
-                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
+                    var client = AzureImageMLApi.Authenticate(_loginInfo);
                     await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
                 }
 
@@ -609,7 +613,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 }
                 else
                 {
-                    using ComputerVisionClient client = AzureImageMLApi.Authenticate(_loginInfo);
+                    var client = AzureImageMLApi.Authenticate(_loginInfo);
                     await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
                 }
 

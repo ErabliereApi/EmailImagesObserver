@@ -2,9 +2,11 @@ using BlazorApp;
 using BlazorApp.Extension;
 using BlazorApp.HostDecorator;
 
-Console.Out.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
+Console.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
 
 Console.WriteLine("ASPNETCORE_ENVIRONMENT: " + Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+
+Console.WriteLine("TimeZone: " + TimeZoneInfo.Local);
 
 try
 {
@@ -29,7 +31,7 @@ try
         host = host.WithFlorenceAI();
     }
 
-    host.Run();
+    await host.RunAsync();
 }
 catch (Exception? e)
 {
@@ -37,5 +39,5 @@ catch (Exception? e)
 }
 finally
 {
-    Console.Out.WriteLine($"[INF] {DateTime.Now} Fin de EmailImagesObserver");
+    Console.WriteLine($"[INF] {DateTime.Now} Fin de EmailImagesObserver");
 }

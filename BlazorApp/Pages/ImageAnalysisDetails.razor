@@ -1,6 +1,7 @@
 ﻿@page "/imageanalysisdetails/{id}"
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using BlazorApp.ComputerVision
 @using Florence2
 @using SixLabors.Fonts
 @using SixLabors.ImageSharp
@@ -8,14 +9,20 @@
 @using SixLabors.ImageSharp.PixelFormats
 @using SixLabors.ImageSharp.Processing
 @inject ImageInfoService imageService
+@inject CustomLocalModel clm
 
 <h3>Image Analysis Details</h3>
 <h6>@Id</h6>
+
+<div class="btn-group">
+    <button class="btn btn-info" @onclick="() => classifyUsingLocalModel()">Classification</button>
+</div>
 
 @if (ImageInfo != null)
 {
     <div class="row">
         <div class="col-md-6">
+            <p>@classifyLabel</p>
             <img src="data:image/png;base64,@GetImagesBase64WithBoxes(ImageInfo)" class="img-fluid" />
         </div>
         <div class="col-md-6">
@@ -45,7 +52,7 @@
         <h6>Json info:</h6>
         <pre class="text" style="max-width: 1200px; overflow: scroll;">
             @GetFormatedJson(ImageInfo)
-                    </pre>
+        </pre>
     </div>
 }
 else
@@ -58,6 +65,8 @@ else
     public string Id { get; set; } = "";
 
     public Data.ImageInfo? ImageInfo { get; private set; }
+
+    public string? classifyLabel { get; private set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,5 +259,17 @@ else
                                                                     null;
         }
         return best ?? SystemFonts.Families.FirstOrDefault(f => f.Name.Contains("Sans"), SystemFonts.Families.First());
+    }
+
+    private void classifyUsingLocalModel()
+    {
+        if (ImageInfo?.Images != null)
+        {
+            var result = clm.ClassifyImage(ImageInfo.Images);
+
+            classifyLabel = JsonSerializer.Serialize(result);
+
+            StateHasChanged();
+        }
     }
 }

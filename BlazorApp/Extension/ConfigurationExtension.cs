@@ -6,4 +6,14 @@ public static class ConfigurationExtension
     {
         return configuration["USE_FLORENCE2_VISION"]?.ToLower()?.Trim() == "true";
     }
+
+    public static bool UseAzureVision(this IConfiguration configuration)
+    {
+        return configuration["USE_AZURE_VISION"]?.ToLower()?.Trim() == "true";
+    }
+
+    public static string? DatabaseProvider(this IConfiguration configuration)
+    {
+        return configuration["Database:Provider"];
+    }
 }

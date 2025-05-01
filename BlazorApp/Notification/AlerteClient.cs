@@ -1,7 +1,9 @@
-using BlazorApp.AzureComputerVision;
+using BlazorApp.Model;
 using BlazorApp.Services;
 using Microsoft.Extensions.Options;
 using MimeKit;
+
+namespace BlazorApp.Notification;
 
 /// <summary>
 /// Client for sending alerts
