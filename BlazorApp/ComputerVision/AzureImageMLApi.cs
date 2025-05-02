@@ -35,7 +35,7 @@ public class AzureImageMLApi : AIAlerteService
         return client;
     }
 
-    public AzureImageMLApi(Data.BlazorDbContext context, ILogger<AzureImageMLApi> logger, AlerteClient alerteClient) :
+    public AzureImageMLApi(BlazorDbContext context, ILogger<AzureImageMLApi> logger, AlerteClient alerteClient) :
         base(context, logger, alerteClient)
     {
         _context = context;
@@ -51,13 +51,11 @@ public class AzureImageMLApi : AIAlerteService
     /// <returns></returns>
     public async Task AnalyzeImageAsync(
         ComputerVisionClient client, 
-        Data.ImageInfo imageInfo, 
-        ConcurrentDictionary<Guid, IObserver<Data.ImageInfo>>? observer = null, 
+        ImageInfo imageInfo, 
+        ConcurrentDictionary<Guid, IObserver<ImageInfo>>? observer = null, 
         CancellationToken token = default)
     {
         _logger.LogInformation("------------- ANALYZE IMAGE - ATTACHMENT ---------------");
-        _logger.LogInformation(imageInfo.ToString());
-        _logger.LogInformation("");
 
         if (imageInfo.Images == null)
         {
@@ -111,7 +109,7 @@ public class AzureImageMLApi : AIAlerteService
         }
         catch (Exception? e)
         {
-            _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
+            _logger.LogError(e, "Error in AzureImageMLApi: {Message}", e.Message);
         }
     }
 }

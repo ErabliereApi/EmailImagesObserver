@@ -5,7 +5,7 @@ namespace BlazorApp.ComputerVision;
 
 public class CustomLocalModel
 {
-    private InferenceSession? _session;
+    private readonly InferenceSession? _session;
 
     public CustomLocalModel(string? modelPath)
     {
@@ -13,7 +13,7 @@ public class CustomLocalModel
             _session = new InferenceSession(modelPath);
     }
 
-    private string[] categories = ["Bassin", "Dompeux", "Séparateur"]; // Remplacez "autre" par votre troisième catégorie
+    private readonly string[] categories = ["Bassin", "Dompeux", "Séparateur"]; // Remplacez "autre" par votre troisième catégorie
 
     public string ClassifyImage(byte[] image)
     {
@@ -36,7 +36,7 @@ public class CustomLocalModel
 
         // Effectuer la prédiction
         using var results = _session.Run(inputs, ["output"]);
-        var output = results.First().AsTensor<float>();
+        var output = results[0].AsTensor<float>();
 
         int predictedIndex = Array.IndexOf(output.ToArray(), output.Max());
 

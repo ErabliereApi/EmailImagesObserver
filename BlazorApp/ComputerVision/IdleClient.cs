@@ -358,13 +358,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                                                                                 MessageSummaryItems.UniqueId |
                                                                                 MessageSummaryItems.BodyStructure, token);
 
-                    _logger.LogInformation("Fetched {fetched} messages", fetched.Count);
+                    _logger.LogInformation("Fetched {Fetched} messages", fetched.Count);
                 }
                 else
                 {
                     var startDateAjusted = _startDate.LocalDateTime;
 
-                    _logger.LogInformation("Fetch message since startDate: {startDate}", startDateAjusted);
+                    _logger.LogInformation("Fetch message since startDate: {StartDate}", startDateAjusted);
 
                     using var searchTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
@@ -372,22 +372,22 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     var idList = await SentFolder.SearchAsync(dateFiter, searchTokenSource.Token);
 
-                    _logger.LogInformation("idList: {idList}", idList.Count);
+                    _logger.LogInformation("idList: {IdList}", idList.Count);
 
                     var preFetch = await SentFolder.FetchAsync(idList, MessageSummaryItems.UniqueId |
                                                                         MessageSummaryItems.Envelope, token);
 
-                    _logger.LogInformation("PreFetched {preFetched} messages", preFetch.Count);
+                    _logger.LogInformation("PreFetched {PreFetched} messages", preFetch.Count);
 
                     var filtredIdList = preFetch.Where(m => m.Date >= _startDate).Select(m => m.UniqueId).ToList();
 
-                    _logger.LogInformation("filtredIdList: {filtredIdList}", filtredIdList.Count);
+                    _logger.LogInformation("filtredIdList: {FiltredIdList}", filtredIdList.Count);
 
                     fetched = await SentFolder.FetchAsync(filtredIdList, MessageSummaryItems.Full |
                                                                   MessageSummaryItems.UniqueId |
                                                                   MessageSummaryItems.BodyStructure, _tokenSource.Token);
 
-                    _logger.LogInformation("Fetched {fetched} messages", fetched.Count);
+                    _logger.LogInformation("Fetched {Fetched} messages", fetched.Count);
                 }
 
                 break;

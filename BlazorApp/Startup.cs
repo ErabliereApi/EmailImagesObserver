@@ -135,14 +135,8 @@ public class Startup
         // CORS
         if (Configuration.CorsEnabled())
         {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("CorsPolicy",
-                    builder => builder
-                        .AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
-            });
+            Console.WriteLine("StartupConfigureServices : CORS enabled");
+            services.AddCors();
         }
     }
 
@@ -177,14 +171,21 @@ public class Startup
 
         app.UseHttpsRedirection();
 
-        if (Configuration.CorsEnabled())
-        {
-            app.UseCors("CorsPolicy");
-        }
-
         app.UseStaticFiles();
 
         app.UseRouting();
+
+        if (Configuration.CorsEnabled())
+        {
+            Console.WriteLine("CORS enabled. Middleware Added.");
+
+            app.UseCors(option =>
+            {
+                option.WithHeaders(Configuration["CORS_HEADERS"]?.Split(',') ?? ["*"]);
+                option.WithMethods(Configuration["CORS_METHODS"]?.Split(',') ?? ["*"]);
+                option.WithOrigins(Configuration["CORS_ORIGINS"]?.Split(',') ?? ["*"]);
+            });
+        }
 
         app.UseSession();
 

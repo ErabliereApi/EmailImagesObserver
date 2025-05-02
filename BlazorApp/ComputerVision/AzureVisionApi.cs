@@ -57,7 +57,6 @@ public class AzureVisionApi : AIAlerteService
         CancellationToken token = default)
     {
         _logger.LogInformation("------------- ANALYZE IMAGE - ATTACHMENT ---------------");
-        _logger.LogInformation(imageInfo.ToString());
 
         if (imageInfo.Images == null)
         {
