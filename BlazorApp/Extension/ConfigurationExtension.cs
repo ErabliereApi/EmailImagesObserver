@@ -16,4 +16,9 @@ public static class ConfigurationExtension
     {
         return configuration["Database:Provider"];
     }
+
+    public static bool CorsEnabled(this IConfiguration configuration)
+    {
+        return string.Equals(configuration["CORS_ENABLE"]?.Trim(), bool.TrueString, StringComparison.OrdinalIgnoreCase);
+    }
 }

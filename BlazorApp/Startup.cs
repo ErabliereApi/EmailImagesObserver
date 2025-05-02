@@ -131,6 +131,19 @@ public class Startup
 
         // Timezone
         services.AddScoped<TimezoneService>();
+
+        // CORS
+        if (Configuration.CorsEnabled())
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy",
+                    builder => builder
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+            });
+        }
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
@@ -163,6 +176,11 @@ public class Startup
         });
 
         app.UseHttpsRedirection();
+
+        if (Configuration.CorsEnabled())
+        {
+            app.UseCors("CorsPolicy");
+        }
 
         app.UseStaticFiles();
 
