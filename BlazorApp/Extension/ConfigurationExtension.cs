@@ -21,4 +21,9 @@ public static class ConfigurationExtension
     {
         return string.Equals(configuration["CORS_ENABLE"]?.Trim(), bool.TrueString, StringComparison.OrdinalIgnoreCase);
     }
+
+    public static bool HttpsRedirectionEnabled(this IConfiguration configuration)
+    {
+        return !string.Equals(configuration["DISABLE_HTTPS_REDIRECTION"]?.Trim(), bool.TrueString, StringComparison.OrdinalIgnoreCase);
+    }
 }

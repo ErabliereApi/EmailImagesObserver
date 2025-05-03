@@ -169,7 +169,15 @@ public class Startup
             await next();
         });
 
-        app.UseHttpsRedirection();
+        if (Configuration.HttpsRedirectionEnabled())
+        {
+            Console.WriteLine("HTTPS redirection enabled. Middleware Added.");
+            app.UseHttpsRedirection();
+        }
+        else 
+        {
+            Console.WriteLine("HTTPS redirection disabled because DISABLE_HTTPS_REDIRECTION is set to true.");
+        }
 
         app.UseStaticFiles();
 

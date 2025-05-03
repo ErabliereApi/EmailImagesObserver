@@ -35,12 +35,12 @@ public class HostIdleClientExitManagment : IHost
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        var client = Services.GetRequiredService<IdleClient>();
+        var idleClient = Services.GetRequiredService<IdleClient>();
         var aiQueue = Services.GetRequiredService<AIAnalysisQueue>();
 
         var host = _host.StartAsync(cancellationToken);
 
-        _idleTask = client.RunAsync(cancellationToken);
+        _idleTask = idleClient.RunAsync(cancellationToken);
         _aiQueueTask = aiQueue.BackgroundProcessAsync(cancellationToken);
 
         return host;
