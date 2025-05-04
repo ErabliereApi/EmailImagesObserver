@@ -36,12 +36,14 @@ public class Florence2LocalModel : AIAlerteService
         {
             var results = new List<FlorenceResults>(15);
 
+            using var stream = new MemoryStream(imageInfo.Images);
+
             int i = 1;
             foreach (var task in tasks)
             {
                 _logger.LogInformation("Task {I}: {Task}", i++, task);
 
-                using var stream = new MemoryStream(imageInfo.Images);
+                stream.Position = 0; // Reset stream position for each task
 
                 var singleResults = modelSession.Run(task, [stream], textInput: "", CancellationToken.None);
 
@@ -60,8 +62,6 @@ public class Florence2LocalModel : AIAlerteService
             imageInfo.AzureImageAPIInfo = jsonResult;
             imageInfo.AITypes += "Florence2;";
 
-            _logger.LogInformation(jsonResult);
-
             _context.Update(imageInfo);
 
             await _context.SaveChangesAsync(token);
@@ -78,7 +78,7 @@ public class Florence2LocalModel : AIAlerteService
         }
         catch (Exception? e)
         {
-            _logger.LogError(e, "Error in AzureImageMLApi: {message}", e.Message);
+            _logger.LogError(e, "Error in Florence2LocalModel: {Message}", e.Message);
         }
     }
 
@@ -107,7 +107,7 @@ public class Florence2LocalModel : AIAlerteService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in GetFlorence2TaskTypesConfigure: {message}", e.Message);
+            _logger.LogError(e, "Error in GetFlorence2TaskTypesConfigure: {Message}", e.Message);
             tasks.AddRange(Enum.GetValues<TaskTypes>());
         }
 

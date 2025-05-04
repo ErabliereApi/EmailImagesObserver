@@ -599,7 +599,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
 
-                    if (_config.UseFlorence2AI())
+                if (_config.UseFlorence2AI())
                 {
                     var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
 
@@ -645,7 +645,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         var textBody = item.TextBody?.ToString();
 
-        _logger.LogInformation("TextBody: {textBody}", textBody);
+        _logger.LogInformation("TextBody: {TextBody}", textBody);
 
         var map = mapping.FirstOrDefault(m => textBody?.Contains(m.SubFilter ?? "") == true);
 
@@ -715,7 +715,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     }
                     catch (Exception e)
                     {
-                        _logger.LogWarning(e, "Exception when idling: {message}", e.Message);
+                        _logger.LogWarning(e, "Exception when idling: {Message}", e.Message);
                     }
                     finally
                     {
@@ -736,14 +736,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             }
             catch (ImapProtocolException ipEx)
             {
-                _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {message}", ipEx.Message);
+                _logger.LogWarning(ipEx, "Error in WaitForNewMessagesAsync: {Message}", ipEx.Message);
 
                 // protocol exceptions often result in the client getting disconnected
                 await ReconnectAsync();
             }
             catch (IOException ioEx)
             {
-                _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {message}", ioEx.Message);
+                _logger.LogWarning(ioEx, "Error in WaitForNewMessagesAsync: {Message}", ioEx.Message);
 
                 // I/O exceptions always result in the client getting disconnected
                 await ReconnectAsync();
@@ -761,7 +761,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             int arrived = folder.Count - _emailStateDb.MessagesCount;
 
             if (arrived > 1)
-                _logger.LogInformation("\tOnCountChanged: {arrived} new messages have arrived.", arrived);
+                _logger.LogInformation("\tOnCountChanged: {Arrived} new messages have arrived.", arrived);
 
             else
                 _logger.LogInformation("\tOnCountChanged: 1 new message has arrived.");
@@ -771,14 +771,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            _logger.LogWarning("\tOnCountChanged: {folder}: {Count} messages.", folder, folder?.Count);
-            _logger.LogWarning("\tOnCountChanged: Seems like nothing changed...");
+            _logger.LogWarning("\tOnCountChanged: {Folder}: {Count} messages. Seems like nothing changed...", folder, folder?.Count);
         }
     }
 
     async void OnMessageExpunged(object? sender, MessageEventArgs e)
     {
-        _logger.LogInformation("OnMessageExpundeg: {folder}: message #{Index} has been expunged.", sender, e.Index);
+        _logger.LogInformation("OnMessageExpundeg: {Folder}: message #{Index} has been expunged.", sender, e.Index);
 
         var folder = sender as ImapFolder;
 
@@ -792,7 +791,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            _logger.LogInformation("OnMessageExpundeg: {folder}: message #{Index} has been expunged.", folder, e.Index);
+            _logger.LogInformation("OnMessageExpundeg: {Folder}: message #{Index} has been expunged.", folder, e.Index);
         }
     }
 
@@ -802,7 +801,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             var folder = sender as ImapFolder;
 
-            _logger.LogInformation("{folder}: flags have changed for message #{Index} ({Flags}).", folder?.ToString(), e.Index, e.Flags);
+            _logger.LogInformation("{Folder}: flags have changed for message #{Index} ({Flags}).", folder?.ToString(), e.Index, e.Flags);
         }
         catch (Exception ex)
         {
@@ -827,12 +826,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 parseImage = true;
             }
 
-            if (parseImage)
+            if (parseImage && !string.IsNullOrWhiteSpace(lines[i]))
             {
-                if (string.IsNullOrWhiteSpace(lines[i]) == false)
-                {
-                    sb.Append(lines[i]);
-                }
+                sb.Append(lines[i]);
             }
         }
 
@@ -858,11 +854,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (_observers.TryAdd(sessionId, observer))
         {
-            _logger.LogInformation("Subscribe {sessionId} successfully", sessionId);
+            _logger.LogInformation("Subscribe {SessionId} successfully", sessionId);
         }
         else
         {
-            _logger.LogError("[WRN] Failed to subscribe {sessionId}", sessionId);
+            _logger.LogError("[WRN] Failed to subscribe {SessionId}", sessionId);
         }
 
         return this;
@@ -876,11 +872,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         if (_observers.TryRemove(sessionId ?? Guid.Empty, out _))
         {
-            _logger.LogInformation("Unsubscribe {sessionId} successfully", sessionId);
+            _logger.LogInformation("Unsubscribe {SessionId} successfully", sessionId);
         }
         else
         {
-            _logger.LogError("[WRN] Failed to unsubscribe {sessionId}", sessionId);
+            _logger.LogError("[WRN] Failed to unsubscribe {SessionId}", sessionId);
         }
 
         return this;

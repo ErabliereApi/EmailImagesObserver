@@ -35,7 +35,7 @@ public class HeapInspector : IHost
     {
         _backgroup = Task.Run(async () =>
         {
-            while (cancellationToken.IsCancellationRequested == false)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
