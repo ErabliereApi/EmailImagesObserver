@@ -104,10 +104,18 @@ public class Startup
         services.AddSingleton(sp => new Florence2Model(sp.GetRequiredService<FlorenceModelDownloader>()));
         services.AddTransient<Florence2LocalModel>();
 
+        // AiBridges
+        services.AddScoped<AiBridgesApi>();
+        services.AddHttpClient("AiBridgesClient", client =>
+        {
+            client.BaseAddress = new Uri(Configuration.GetRequiredString("AI_BRIDGES_API_URL"));
+        });
+
         // Ai background worker
         services.AddSingleton<AIAnalysisQueue>();
 
-        services.AddSingleton<CustomLocalModel>(new CustomLocalModel(Configuration["CUSTOM_LOCAL_MODEL"]));
+        // Custom local model
+        services.AddSingleton(new CustomLocalModel(Configuration["CUSTOM_LOCAL_MODEL"]));
 
         // Database
         services.AddDbContext<BlazorDbContext>(options =>

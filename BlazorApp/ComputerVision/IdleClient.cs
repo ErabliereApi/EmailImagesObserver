@@ -11,6 +11,7 @@ using System.Text.Json;
 using BlazorApp.Extension;
 using Florence2;
 using BlazorApp.Model;
+using BlazorApp.ComputerVision;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -117,14 +118,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         catch (OperationCanceledException ocEx)
         {
-            _logger.LogError(ocEx, "RunAsync Exception: {message}", ocEx.Message);
+            _logger.LogError(ocEx, "RunAsync Exception: {Message}", ocEx.Message);
             await _imapClient.DisconnectAsync(true);
             return;
         }
         catch (Exception e)
         {
-            _logger.LogCritical(e, "RunAsync Exception: {message}", e.Message);
-            _logger.LogError("RunAsync Exception: {stackTrace}", e.StackTrace);
+            _logger.LogCritical(e, "RunAsync Exception: {Message}", e.Message);
+            _logger.LogError("RunAsync Exception: {StackTrace}", e.StackTrace);
             throw;
         }
 
@@ -319,14 +320,14 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _startDate = imageInfo?.DateEmail ?? _config.GetValue<DateTimeOffset>("StartDate").DateTime;
 
-                    _logger.LogInformation("Unique id: {uniqueId} _startdate: {date}", _uniqueId, _startDate);
+                    _logger.LogInformation("Unique id: {UniqueId} _startdate: {Date}", _uniqueId, _startDate);
                 }
 
                 if (_uniqueId == null)
                 {
                     _startDate = _config.GetValue<DateTimeOffset>("StartDate").DateTime;
 
-                    _logger.LogInformation("Unique id: {uniqueId} _startdate: {date}", _uniqueId, _startDate);
+                    _logger.LogInformation("Unique id: {UniqueId} _startdate: {Date}", _uniqueId, _startDate);
                 }
 
                 if (_emailStateDb == null)
@@ -350,9 +351,9 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                 if (_uniqueId.HasValue &&
                     _emailStateDb.Email != null &&
-                    _emailStateDb.Email.Contains("gmail", StringComparison.OrdinalIgnoreCase) == false)
+                    !_emailStateDb.Email.Contains("gmail", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Fetch message since uniqueId: {uniqueId} datetime: {date}", _uniqueId, imageInfo?.DateEmail);
+                    _logger.LogInformation("Fetch message since uniqueId: {UniqueId} datetime: {Date}", _uniqueId, imageInfo?.DateEmail);
 
                     fetched = await SentFolder.FetchAsync(MessageCount - 1, -1, MessageSummaryItems.Full |
                                                                                 MessageSummaryItems.UniqueId |
@@ -441,7 +442,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     {
         var attachmentCount = attachments.Count();
 
-        _logger.LogInformation("Attachments count: {attachmentCount}", attachmentCount);
+        _logger.LogInformation("Attachments count: {AttachmentCount}", attachmentCount);
 
         if (attachmentCount == 0)
         {
@@ -449,19 +450,19 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
                                                            p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true))
             {
-                _logger.LogDebug("part: {part}", part.ToString());
-                _logger.LogDebug("part.Type: {partType}", part.GetType().ToString());
-                _logger.LogDebug("part.Descirptionpart: {contentDescription}", part.ContentDescription);
-                _logger.LogDebug("part.ContentDisposition: {contentDisposition}", part.ContentDisposition?.ToString());
-                _logger.LogDebug("part.ContentId: {contentId}", part.ContentId);
-                _logger.LogDebug("part.ContentLocation: {contentLocation}", part.ContentLocation?.ToString());
-                _logger.LogDebug("part.ContentMd5: {contentMd5}", part.ContentMd5);
-                _logger.LogDebug("part.ContentTransferEncoding: {transfertEncoding}", part.ContentTransferEncoding);
-                _logger.LogDebug("part.ContentType: {contentType}", part.ContentType?.ToString());
-                _logger.LogDebug("part.FileName: {fileName}", part.FileName);
-                _logger.LogDebug("part.IsAttachment: {isAttachment}", part.IsAttachment.ToString());
-                _logger.LogDebug("part.Octets: {octets}", part.Octets.ToString());
-                _logger.LogDebug("part.PartSpecifier: {partSpecifier}", part.PartSpecifier);
+                _logger.LogDebug("Part details: Type={PartType}, Description={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransferEncoding={ContentTransferEncoding}, ContentType={ContentType}, FileName={FileName}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}", 
+                    part.GetType().ToString(), 
+                    part.ContentDescription, 
+                    part.ContentDisposition?.ToString(), 
+                    part.ContentId, 
+                    part.ContentLocation?.ToString(), 
+                    part.ContentMd5, 
+                    part.ContentTransferEncoding, 
+                    part.ContentType?.ToString(), 
+                    part.FileName, 
+                    part.IsAttachment.ToString(), 
+                    part.Octets.ToString(), 
+                    part.PartSpecifier);
 
                 // note: it's possible for this to be null, but most will specify a filename
                 var fileName = part.FileName;
@@ -480,7 +481,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     EmailStatesId = _emailStateDb?.Id
                 };
 
-                _logger.LogInformation("New ImageInfo: {imageInfo}", JsonSerializer.Serialize(imageInfo));
+                _logger.LogInformation("New ImageInfo: {ImageInfo}", JsonSerializer.Serialize(imageInfo));
 
                 if (item.InternalDate.HasValue)
                 {
@@ -491,18 +492,24 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     _startDate = item.Date;
                 }
 
-                _logger.LogInformation("New Start date: {startDate}", _startDate);
+                _logger.LogInformation("New Start date: {StartDate}", _startDate);
 
                 using (var stream = new MemoryStream())
                 {
-                    entity.WriteTo(stream, _tokenSource.Token);
+                    await entity.WriteToAsync(stream, _tokenSource.Token);
 
                     var imageString = Encoding.ASCII.GetString(stream.ToArray());
 
                     await ParseAndSaveImageAsync(imageString, imageInfo, token);
                 }
 
-                if (_config.UseFlorence2AI())
+                if (_config.UseAiBridges())
+                {
+                    var aiBridgesApi = _scoped.ServiceProvider.GetRequiredService<AiBridgesApi>();
+
+                    await aiBridgesApi.AnalyzeImageAsync(imageInfo, _observers, token);
+                }
+                else if (_config.UseFlorence2AI())
                 {
                     var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
 
@@ -537,17 +544,18 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (var attachment in attachments)
         {
-            _logger.LogDebug("Attachment.ContentDescription: {contentDescription}", attachment.ContentDescription);
-            _logger.LogDebug("Attachment.ContentDisposition: {contentDisposition}", attachment.ContentDisposition?.ToString());
-            _logger.LogDebug("Attachment.ContentId: {contentId}", attachment.ContentId);
-            _logger.LogDebug("Attachment.ContentLocation: {contentLocation}", attachment.ContentLocation?.ToString());
-            _logger.LogDebug("Attachment.ContentMd5: {contentMd5}", attachment.ContentMd5);
-            _logger.LogDebug("Attachment.ContentTransfertEncoding: {contentTransfertEncoding}", attachment.ContentTransferEncoding);
-            _logger.LogDebug("Attachment.ContentType: {contentType}", attachment.ContentType?.ToString());
-            _logger.LogDebug("Attachment.FileName: {filename}", attachment.FileName);
-            _logger.LogDebug("Attachment.IsAttachement: {isAttachment}", attachment.IsAttachment.ToString());
-            _logger.LogDebug("Attachment.Octets: {octets}", attachment.Octets.ToString());
-            _logger.LogDebug("Attachment.PartSpecifier: {partSpecifier}", attachment.PartSpecifier);
+            _logger.LogDebug("Attachment details: ContentDescription={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransfertEncoding={ContentTransfertEncoding}, ContentType={ContentType}, FileName={Filename}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}", 
+                attachment.ContentDescription, 
+                attachment.ContentDisposition?.ToString(), 
+                attachment.ContentId, 
+                attachment.ContentLocation?.ToString(), 
+                attachment.ContentMd5, 
+                attachment.ContentTransferEncoding, 
+                attachment.ContentType?.ToString(), 
+                attachment.FileName, 
+                attachment.IsAttachment.ToString(), 
+                attachment.Octets.ToString(), 
+                attachment.PartSpecifier);
 
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                 attachment.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
@@ -599,6 +607,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
 
+                if (_config.UseAiBridges())
+                {
+                    var aiBridgesApi = _scoped.ServiceProvider.GetRequiredService<AiBridgesApi>();
+
+                    await aiBridgesApi.AnalyzeImageAsync(imageInfo, _observers, token);
+                }
                 if (_config.UseFlorence2AI())
                 {
                     var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();

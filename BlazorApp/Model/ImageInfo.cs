@@ -79,6 +79,11 @@ public class ImageInfo : IComparable<ImageInfo>
 
     private FlorenceResults[]? _florenceResult;
 
+    private readonly JsonSerializerOptions Florence2JsonSettings = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     [JsonIgnore]
     public FlorenceResults[]? FlorenceResults 
     {
@@ -88,7 +93,7 @@ public class ImageInfo : IComparable<ImageInfo>
             {
                 try
                 {
-                    _florenceResult = JsonSerializer.Deserialize<FlorenceResults[]>(AzureImageAPIInfo);
+                    _florenceResult = JsonSerializer.Deserialize<FlorenceResults[]>(AzureImageAPIInfo, Florence2JsonSettings);
                 }
                 catch (Exception e)
                 {

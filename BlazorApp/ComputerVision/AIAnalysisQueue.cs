@@ -5,6 +5,7 @@ using Florence2;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using BlazorApp.Model;
+using BlazorApp.ComputerVision;
 
 namespace BlazorApp.AzureComputerVision;
 
@@ -48,7 +49,13 @@ public class AIAnalysisQueue : IDisposable
 
                     if (image != null)
                     {
-                        if (_configuration.UseFlorence2AI())
+                        if (_configuration.UseAiBridges())
+                        {
+                            var aiBridgesApi = scope.ServiceProvider.GetRequiredService<AiBridgesApi>();
+
+                            await aiBridgesApi.AnalyzeImageAsync(image, null, _cancellationTokenSource.Token);
+                        }
+                        else if (_configuration.UseFlorence2AI())
                         {
                             var modelSession = scope.ServiceProvider.GetRequiredService<Florence2Model>();
                             var florence2 = scope.ServiceProvider.GetRequiredService<Florence2LocalModel>();

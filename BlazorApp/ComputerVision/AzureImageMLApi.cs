@@ -12,7 +12,7 @@ namespace BlazorApp.AzureComputerVision;
 
 /// <summary>
 /// AzureVision serivce using the Microsoft.Azure.CognitiveServices.Vision.ComputerVision nuget package.
-/// Developpement started in march 2025
+/// Developpement started in march 2022
 /// </summary>
 public class AzureImageMLApi : AIAlerteService
 {
