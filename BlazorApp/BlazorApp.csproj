@@ -36,6 +36,12 @@
 		<PackageReference Include="Twilio" Version="7.10.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Update="docker-entrypoint.sh">
+		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
 	<ProjectExtensions>
 		<VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="" /></VisualStudio>
 	</ProjectExtensions>

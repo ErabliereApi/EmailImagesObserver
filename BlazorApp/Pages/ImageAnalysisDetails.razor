@@ -79,7 +79,20 @@ else
 
         if (imageInfo?.AITypes.Contains("Azure") == true)
         {
-            toSerialize = imageInfo.ImageAnalysis;
+            var imageAnalysis = imageInfo.ImageAnalysis;
+
+            if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageInfo.AITypes.Contains("AzureImageML;"))
+            {
+                toSerialize = imageAnalysis;
+            }
+            else if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageAnalysis.HasValue)
+            {
+                toSerialize = imageAnalysis.Value.Item1;
+            }
+            else if (imageAnalysis.HasValue)
+            {
+                toSerialize = imageAnalysis.Value.Item2;
+            }
         } 
         else if (imageInfo?.AITypes.Contains("Florence") == true) 
         {

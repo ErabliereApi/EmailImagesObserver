@@ -54,7 +54,7 @@ public class ImageInfo : IComparable<ImageInfo>
     {
         get
         {
-            if (_imagesAnalysis.HasValue)
+            if (!_imagesAnalysis.HasValue)
             {
                 try
                 {
