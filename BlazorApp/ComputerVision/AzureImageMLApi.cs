@@ -91,8 +91,6 @@ public class AzureImageMLApi : AIAlerteService
             imageInfo.AzureImageAPIInfo = jsonResult;
             imageInfo.AITypes += "AzureImageML;";
 
-            _logger.LogInformation(jsonResult);
-
             _context.Update(imageInfo);
 
             await _context.SaveChangesAsync(token);

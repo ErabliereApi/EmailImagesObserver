@@ -112,8 +112,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         try
         {
             await ReconnectAsync();
-            _logger.LogInformation("RunAsync: ReconnectAsync complete");
-            _logger.LogInformation("RunAsync: FetchMessageSummariesAsync");
+            _logger.LogInformation("RunAsync: ReconnectAsync complete, now FetchMessageSummariesAsync");
             await FetchMessageSummariesAsync(print: false, analyseImage: CheckConfigDateAndThenUniqueId, token);
         }
         catch (OperationCanceledException ocEx)
@@ -124,8 +123,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         catch (Exception e)
         {
-            _logger.LogCritical(e, "RunAsync Exception: {Message}", e.Message);
-            _logger.LogError("RunAsync Exception: {StackTrace}", e.StackTrace);
+            _logger.LogCritical(e, "RunAsync Exception: {Message} {StackTrace}", e.Message, e.StackTrace);
             throw;
         }
 
@@ -175,7 +173,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     public void Exit()
     {
         _logger.LogInformation("IdleClient.Exit");
-        if (_tokenSource.IsCancellationRequested == false)
+        if (!_tokenSource.IsCancellationRequested)
         {
             _tokenSource.Cancel();
         }
