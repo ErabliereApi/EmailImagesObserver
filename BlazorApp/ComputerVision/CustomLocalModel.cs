@@ -9,7 +9,7 @@ public class CustomLocalModel
 
     public CustomLocalModel(string? modelPath)
     {
-        if (modelPath != null)
+        if (!string.IsNullOrWhiteSpace(modelPath))
             _session = new InferenceSession(modelPath);
     }
 

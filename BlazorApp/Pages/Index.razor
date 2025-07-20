@@ -72,9 +72,23 @@ else
             <li>@model</li>
         }
     }
-    @if (config.UseFlorence2AI())
+    @if (config.UseAiBridges())
+    {
+        <li>AIBridge Florence2</li>
+        <li>Capabilities: @config["USE_FLORENCE2_TASKTYPES"]</li>
+    }
+    else if (config.UseFlorence2AI())
     {
         <li>Florence2</li>
+        <li>Capabilities: @config["USE_FLORENCE2_TASKTYPES"]</li>
+    }
+    else if (config.UseAzureVision())
+    {
+        <li>Azure Vision 2025</li>
+    }
+    else
+    {
+        <li>Azure Vision 2022</li>
     }
 </ul>
 @code 

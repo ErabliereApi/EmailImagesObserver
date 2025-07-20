@@ -448,18 +448,18 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             foreach (var part in item.BodyParts.Where(p => p.FileName?.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) == true ||
                                                            p.FileName?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true))
             {
-                _logger.LogDebug("Part details: Type={PartType}, Description={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransferEncoding={ContentTransferEncoding}, ContentType={ContentType}, FileName={FileName}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}", 
-                    part.GetType().ToString(), 
-                    part.ContentDescription, 
-                    part.ContentDisposition?.ToString(), 
-                    part.ContentId, 
-                    part.ContentLocation?.ToString(), 
-                    part.ContentMd5, 
-                    part.ContentTransferEncoding, 
-                    part.ContentType?.ToString(), 
-                    part.FileName, 
-                    part.IsAttachment.ToString(), 
-                    part.Octets.ToString(), 
+                _logger.LogDebug("Part details: Type={PartType}, Description={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransferEncoding={ContentTransferEncoding}, ContentType={ContentType}, FileName={FileName}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}",
+                    part.GetType().ToString(),
+                    part.ContentDescription,
+                    part.ContentDisposition?.ToString(),
+                    part.ContentId,
+                    part.ContentLocation?.ToString(),
+                    part.ContentMd5,
+                    part.ContentTransferEncoding,
+                    part.ContentType?.ToString(),
+                    part.FileName,
+                    part.IsAttachment.ToString(),
+                    part.Octets.ToString(),
                     part.PartSpecifier);
 
                 // note: it's possible for this to be null, but most will specify a filename
@@ -501,31 +501,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await ParseAndSaveImageAsync(imageString, imageInfo, token);
                 }
 
-                if (_config.UseAiBridges())
-                {
-                    var aiBridgesApi = _scoped.ServiceProvider.GetRequiredService<AiBridgesApi>();
-
-                    await aiBridgesApi.AnalyzeImageAsync(imageInfo, _observers, token);
-                }
-                else if (_config.UseFlorence2AI())
-                {
-                    var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
-
-                    while (!modelSource.IsReady)
-                    {
-                        await Task.Delay(5000);
-                    }
-
-                    var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
-                    var florence2Local = _scoped.ServiceProvider.GetRequiredService<Florence2LocalModel>();
-
-                    await florence2Local.AnalyzeImageAsync(modelSession, imageInfo, _observers, token);
-                }
-                else
-                {
-                    var client = AzureImageMLApi.Authenticate(_loginInfo);
-                    await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
-                }
+                await AnalyseImageAsync(imageInfo, token);
 
                 if (_emailStateDb != null)
                 {
@@ -605,31 +581,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
 
-                if (_config.UseAiBridges())
-                {
-                    var aiBridgesApi = _scoped.ServiceProvider.GetRequiredService<AiBridgesApi>();
-
-                    await aiBridgesApi.AnalyzeImageAsync(imageInfo, _observers, token);
-                }
-                if (_config.UseFlorence2AI())
-                {
-                    var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
-
-                    while (!modelSource.IsReady)
-                    {
-                        await Task.Delay(5000);
-                    }
-
-                    var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
-                    var florence2Local = _scoped.ServiceProvider.GetRequiredService<Florence2LocalModel>();
-
-                    await florence2Local.AnalyzeImageAsync(modelSession, imageInfo, _observers, token);
-                }
-                else
-                {
-                    var client = AzureImageMLApi.Authenticate(_loginInfo);
-                    await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
-                }
+                await AnalyseImageAsync(imageInfo, token);
 
                 if (_emailStateDb != null)
                 {
@@ -640,6 +592,43 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     await _context.SaveChangesAsync(token);
                 }
             }
+        }
+    }
+
+    private async Task AnalyseImageAsync(ImageInfo imageInfo, CancellationToken token)
+    {
+        if (_config.UseAiBridges())
+        {
+            var aiBridgesApi = _scoped.ServiceProvider.GetRequiredService<AiBridgesApi>();
+
+            await aiBridgesApi.AnalyzeImageAsync(imageInfo, _observers, token);
+        }
+        else if (_config.UseFlorence2AI())
+        {
+            var modelSource = _scoped.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
+
+            while (!modelSource.IsReady)
+            {
+                await Task.Delay(5000);
+            }
+
+            var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
+            var florence2Local = _scoped.ServiceProvider.GetRequiredService<Florence2LocalModel>();
+
+            await florence2Local.AnalyzeImageAsync(modelSession, imageInfo, _observers, token);
+        }
+        else if (_config.UseAzureVision())
+        {
+            var azureVision = _scoped.ServiceProvider.GetRequiredService<AzureVisionApi>();
+
+            var client = AzureVisionApi.Authenticate(_loginInfo);
+
+            await azureVision.AnalyzeImageAsync(client, imageInfo, _observers, token);
+        }
+        else
+        {
+            var client = AzureImageMLApi.Authenticate(_loginInfo);
+            await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
         }
     }
 

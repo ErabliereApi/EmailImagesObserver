@@ -49,35 +49,7 @@ public class AIAnalysisQueue : IDisposable
 
                     if (image != null)
                     {
-                        if (_configuration.UseAiBridges())
-                        {
-                            var aiBridgesApi = scope.ServiceProvider.GetRequiredService<AiBridgesApi>();
-
-                            await aiBridgesApi.AnalyzeImageAsync(image, null, _cancellationTokenSource.Token);
-                        }
-                        else if (_configuration.UseFlorence2AI())
-                        {
-                            var modelSession = scope.ServiceProvider.GetRequiredService<Florence2Model>();
-                            var florence2 = scope.ServiceProvider.GetRequiredService<Florence2LocalModel>();
-
-                            await florence2.AnalyzeImageAsync(modelSession, image, null, _cancellationTokenSource.Token);
-                        }
-                        else if (_configuration.UseAzureVision())
-                        {
-                            var azureVision = scope.ServiceProvider.GetRequiredService<AzureVisionApi>();
-
-                            var client = AzureVisionApi.Authenticate(_loginInfo.Value);
-
-                            await azureVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
-                        }
-                        else
-                        {
-                            var azureComputerVision = scope.ServiceProvider.GetRequiredService<AzureImageMLApi>();
-
-                            var client = AzureImageMLApi.Authenticate(_loginInfo.Value);
-
-                            await azureComputerVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
-                        }
+                        await AnalyseImageAsync(scope, image);
                     }
                 }
             }
@@ -88,6 +60,46 @@ public class AIAnalysisQueue : IDisposable
 
 
             await Task.Delay(1000, _cancellationTokenSource.Token);
+        }
+    }
+
+    private async Task AnalyseImageAsync(IServiceScope scope, ImageInfo image)
+    {
+        if (_configuration.UseAiBridges())
+        {
+            var aiBridgesApi = scope.ServiceProvider.GetRequiredService<AiBridgesApi>();
+
+            await aiBridgesApi.AnalyzeImageAsync(image, null, _cancellationTokenSource.Token);
+        }
+        else if (_configuration.UseFlorence2AI())
+        {
+            var modelSource = scope.ServiceProvider.GetRequiredService<FlorenceModelDownloader>();
+
+            while (!modelSource.IsReady)
+            {
+                await Task.Delay(5000);
+            }
+
+            var modelSession = scope.ServiceProvider.GetRequiredService<Florence2Model>();
+            var florence2 = scope.ServiceProvider.GetRequiredService<Florence2LocalModel>();
+
+            await florence2.AnalyzeImageAsync(modelSession, image, null, _cancellationTokenSource.Token);
+        }
+        else if (_configuration.UseAzureVision())
+        {
+            var azureVision = scope.ServiceProvider.GetRequiredService<AzureVisionApi>();
+
+            var client = AzureVisionApi.Authenticate(_loginInfo.Value);
+
+            await azureVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
+        }
+        else
+        {
+            var azureComputerVision = scope.ServiceProvider.GetRequiredService<AzureImageMLApi>();
+
+            var client = AzureImageMLApi.Authenticate(_loginInfo.Value);
+
+            await azureComputerVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
         }
     }
 

@@ -46,6 +46,10 @@ There is a docker image availlable on dockerhub. Here is an example of deploymen
 
 https://github.com/freddycoder/AzureAKS-TLS/blob/main/emailimagesobserver/emailimagesobserver-deployment.yaml
 
+## Configuration example
+
+For a list of configuration exemple see the [Configuration.md](Configuration.md) file.
+
 ### API
 
 The app can expose an API but as of now, it does not support authentication. To enable the API, you need to set the environment variable `EnableUnsecureController` to true.
