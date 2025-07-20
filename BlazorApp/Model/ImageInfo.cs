@@ -97,7 +97,7 @@ public class ImageInfo : IComparable<ImageInfo>
                 }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine(e);
+                    Console.Error.WriteLine($"Error deserializing FlorenceResults: {e.Message} using this data: {AzureImageAPIInfo}\n{e.StackTrace}");
                 }
             }
 
