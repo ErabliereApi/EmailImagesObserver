@@ -51,8 +51,8 @@
     <div class="border-info border rounded">
         <h6>Json info:</h6>
         <pre class="text" style="max-width: 1200px; overflow: scroll;">
-            @GetFormatedJson(ImageInfo)
-        </pre>
+                @GetFormatedJson(ImageInfo)
+            </pre>
     </div>
 }
 else
@@ -93,8 +93,8 @@ else
             {
                 toSerialize = imageAnalysis.Value.Item2;
             }
-        } 
-        else if (imageInfo?.AITypes.Contains("Florence") == true) 
+        }
+        else if (imageInfo?.AITypes.Contains("Florence") == true)
         {
             toSerialize = imageInfo.FlorenceResults;
         }
@@ -138,11 +138,12 @@ else
 
     private static Lazy<FontFamily> DefaultFont = new Lazy<FontFamily>(() => GetDefaultFont());
 
-    private static Image<Rgba32>? DrawInline(Stream imgStreamResult, TaskTypes task, string userText, FlorenceResults[] results, string? outFolder = null)
+    private static Image<Rgba32>? DrawInline(Stream imgStreamResult, TaskTypes task, string userText, FlorenceResults[]
+    results, string? outFolder = null)
     {
         if (!results.Any(r => (r.OCRBBox is object && r.OCRBBox.Any())
-         || (r.BoundingBoxes is object && r.BoundingBoxes.Any())
-         || (r.Polygons is object && r.Polygons.Any()))) return null;
+        || (r.BoundingBoxes is object && r.BoundingBoxes.Any())
+        || (r.Polygons is object && r.Polygons.Any()))) return null;
 
         outFolder ??= Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
@@ -216,11 +217,11 @@ else
                         if (finalResultPolygon.Polygon is object)
                         {
                             var polygon1 = finalResultPolygon.Polygon.Select(e =>
-                            {
-                                var p = new PointF(e.x, e.y);
-                                labelPoint ??= p;
-                                return p;
-                            }).ToArray();
+                    {
+            var p = new PointF(e.x, e.y);
+            labelPoint ??= p;
+            return p;
+        }).ToArray();
                             x.DrawPolygon(penBox, polygon1);
                         }
 
@@ -264,12 +265,12 @@ else
         else if (OperatingSystem.IsLinux())
         {
             best = SystemFonts.TryGet("Arial", out var arial) ? arial :
-                SystemFonts.TryGet("Ubuntu", out var sf) ? sf :
-                SystemFonts.TryGet("Liberation Sans", out var ls) ? ls :
-                SystemFonts.TryGet("DejaVu Sans", out var dvs) ? dvs :
-                SystemFonts.TryGet("Rasa", out var rasa) ? rasa :
-                SystemFonts.TryGet("FreeSans", out var fs) ? fs :
-                                                                    null;
+            SystemFonts.TryGet("Ubuntu", out var sf) ? sf :
+            SystemFonts.TryGet("Liberation Sans", out var ls) ? ls :
+            SystemFonts.TryGet("DejaVu Sans", out var dvs) ? dvs :
+            SystemFonts.TryGet("Rasa", out var rasa) ? rasa :
+            SystemFonts.TryGet("FreeSans", out var fs) ? fs :
+            null;
         }
         return best ?? SystemFonts.Families.FirstOrDefault(f => f.Name.Contains("Sans"), SystemFonts.Families.First());
     }
@@ -278,9 +279,16 @@ else
     {
         if (ImageInfo?.Images != null)
         {
-            var result = clm.ClassifyImage(ImageInfo.Images);
+            try
+            {
+                var result = clm.ClassifyImage(ImageInfo.Images);
 
-            classifyLabel = JsonSerializer.Serialize(result);
+                classifyLabel = JsonSerializer.Serialize(result);
+            }
+            catch (Exception ex)
+            {
+                classifyLabel = $"Error: {ex.Message}";
+            }
 
             StateHasChanged();
         }
