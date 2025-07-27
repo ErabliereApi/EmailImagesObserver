@@ -24,6 +24,7 @@
         <div class="col-md-6">
             <p>@classifyLabel</p>
             <img src="data:image/png;base64,@GetImagesBase64WithBoxes(ImageInfo)" class="img-fluid" />
+            <p class="text-danger">@getImgBase64Error</p>
         </div>
         <div class="col-md-6">
             <dl>
@@ -51,8 +52,8 @@
     <div class="border-info border rounded">
         <h6>Json info:</h6>
         <pre class="text" style="max-width: 1200px; overflow: scroll;">
-                @GetFormatedJson(ImageInfo)
-            </pre>
+                        @GetFormatedJson(ImageInfo)
+                    </pre>
     </div>
 }
 else
@@ -106,34 +107,47 @@ else
         });
     }
 
+    public string getImgBase64Error { get; set; } = string.Empty;
+
     private string GetImagesBase64WithBoxes(Data.ImageInfo imageInfo)
     {
-        var imageBase64 = string.Empty;
-
-        if (imageInfo?.Images is null) return imageBase64;
-
-        if (imageInfo?.AITypes?.Contains("Florence") == true && imageInfo.FlorenceResults != null)
+        try
         {
-            using var stream = new MemoryStream(imageInfo.Images);
+            getImgBase64Error = string.Empty;
 
-            var imageMutated = DrawInline(stream, TaskTypes.REGION_TO_DESCRIPTION, "", imageInfo.FlorenceResults);
+            var imageBase64 = string.Empty;
 
-            if (imageMutated is object)
+            if (imageInfo?.Images is null) return imageBase64;
+
+            if (imageInfo?.AITypes?.Contains("Florence") == true && imageInfo.FlorenceResults != null)
             {
-                using var imageStream = new MemoryStream();
-                imageMutated.SaveAsPng(imageStream);
-                imageBase64 = Convert.ToBase64String(imageStream.ToArray());
+                using var stream = new MemoryStream(imageInfo.Images);
+
+                var imageMutated = DrawInline(stream, TaskTypes.REGION_TO_DESCRIPTION, "", imageInfo.FlorenceResults);
+
+                if (imageMutated is object)
+                {
+                    using var imageStream = new MemoryStream();
+                    imageMutated.SaveAsPng(imageStream);
+                    imageBase64 = Convert.ToBase64String(imageStream.ToArray());
+                }
+
+                imageMutated?.Dispose();
             }
 
-            imageMutated?.Dispose();
-        }
+            if (string.IsNullOrEmpty(imageBase64))
+            {
+                imageBase64 = Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>());
+            }
 
-        if (string.IsNullOrEmpty(imageBase64))
+            return imageBase64;
+        }
+        catch (Exception ex)
         {
-            imageBase64 = Convert.ToBase64String(ImageInfo?.Images ?? Array.Empty<byte>());
+            Console.WriteLine($"Error in GetImagesBase64WithBoxes: {ex.Message}");
+            getImgBase64Error = ex.Message;
+            return imageInfo.Images is not null ? Convert.ToBase64String(imageInfo.Images) : string.Empty;
         }
-
-        return imageBase64;
     }
 
     private static Lazy<FontFamily> DefaultFont = new Lazy<FontFamily>(() => GetDefaultFont());
@@ -190,7 +204,8 @@ else
                         }
 
                         var label = bbox1.Label;
-                        x.DrawText(label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
+                        if (labelPoint.HasValue)
+                            x.DrawText(label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
                         i++;
                     }
 
@@ -244,7 +259,8 @@ else
                             }
                         }
 
-                        x.DrawText(finalResultPolygon.Label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
+                        if (labelPoint.HasValue)
+                            x.DrawText(finalResultPolygon.Label, font, Brushes.Solid(Color.Black), Pens.Solid(Color.White, 1), labelPoint.Value);
                     }
                 }
 
