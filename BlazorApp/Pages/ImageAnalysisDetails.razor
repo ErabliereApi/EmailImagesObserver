@@ -51,9 +51,10 @@
     </div>
     <div class="border-info border rounded">
         <h6>Json info:</h6>
+        <p class="text-danger">@getFormatJsonError</p>
         <pre class="text" style="max-width: 1200px; overflow: scroll;">
-                        @GetFormatedJson(ImageInfo)
-                    </pre>
+                            @GetFormatedJson(ImageInfo)
+                        </pre>
     </div>
 }
 else
@@ -74,38 +75,52 @@ else
         ImageInfo = await imageService.GetImageInfoAsync(long.Parse(Id));
     }
 
+    public string getFormatJsonError { get; set; } = string.Empty;
+
     private string GetFormatedJson(Data.ImageInfo? imageInfo)
     {
-        object? toSerialize = null;
-
-        if (imageInfo?.AITypes.Contains("Azure") == true)
+        try
         {
-            var imageAnalysis = imageInfo.ImageAnalysis;
+            getFormatJsonError = string.Empty;
 
-            if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageInfo.AITypes.Contains("AzureImageML;"))
+            object? toSerialize = null;
+
+            if (imageInfo?.AITypes.Contains("Azure") == true)
             {
-                toSerialize = imageAnalysis;
+                var imageAnalysis = imageInfo.ImageAnalysis;
+
+                if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageInfo.AITypes.Contains("AzureImageML;"))
+                {
+                    toSerialize = imageAnalysis;
+                }
+                else if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageAnalysis.HasValue)
+                {
+                    toSerialize = imageAnalysis.Value.Item1;
+                }
+                else if (imageAnalysis.HasValue)
+                {
+                    toSerialize = imageAnalysis.Value.Item2;
+                }
             }
-            else if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageAnalysis.HasValue)
+            else if (imageInfo?.AITypes.Contains("Florence") == true)
             {
-                toSerialize = imageAnalysis.Value.Item1;
+                toSerialize = imageInfo.FlorenceResults;
             }
-            else if (imageAnalysis.HasValue)
+
+            return JsonSerializer.Serialize(toSerialize, new JsonSerializerOptions
             {
-                toSerialize = imageAnalysis.Value.Item2;
-            }
+                WriteIndented = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
         }
-        else if (imageInfo?.AITypes.Contains("Florence") == true)
+        catch (Exception ex)
         {
-            toSerialize = imageInfo.FlorenceResults;
+            Console.WriteLine($"Error in GetFormatedJson: {ex.Message}");
+            getFormatJsonError = ex.Message;
+            return imageInfo?.AzureImageAPIInfo ?? string.Empty;
         }
 
-        return JsonSerializer.Serialize(toSerialize, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
-    }
+}
 
     public string getImgBase64Error { get; set; } = string.Empty;
 
