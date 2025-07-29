@@ -24,7 +24,10 @@
         <div class="col-md-6">
             <p>@classifyLabel</p>
             <img src="data:image/png;base64,@GetImagesBase64WithBoxes(ImageInfo)" class="img-fluid" />
-            <p class="text-danger">@getImgBase64Error</p>
+            @if (!string.IsNullOrWhiteSpace(getImgBase64Error))
+            {
+                <p class="text-danger">Image base64 error: @getImgBase64Error</p>
+            }
         </div>
         <div class="col-md-6">
             <dl>
@@ -51,10 +54,13 @@
     </div>
     <div class="border-info border rounded">
         <h6>Json info:</h6>
-        <p class="text-danger">@getFormatJsonError</p>
+        @if (!string.IsNullOrWhiteSpace(getFormatJsonError))
+        {
+            <p class="text-danger">Format Json error: @getFormatJsonError</p>
+        }
         <pre class="text" style="max-width: 1200px; overflow: scroll;">
-                            @GetFormatedJson(ImageInfo)
-                        </pre>
+                                @GetFormatedJson(ImageInfo)
+                            </pre>
     </div>
 }
 else
@@ -120,7 +126,7 @@ else
             return imageInfo?.AzureImageAPIInfo ?? string.Empty;
         }
 
-}
+    }
 
     public string getImgBase64Error { get; set; } = string.Empty;
 
@@ -138,7 +144,7 @@ else
             {
                 using var stream = new MemoryStream(imageInfo.Images);
 
-                var imageMutated = DrawInline(stream, TaskTypes.REGION_TO_DESCRIPTION, "", imageInfo.FlorenceResults);
+                var imageMutated = DrawInline(stream, imageInfo.FlorenceResults);
 
                 if (imageMutated is object)
                 {
@@ -167,8 +173,7 @@ else
 
     private static Lazy<FontFamily> DefaultFont = new Lazy<FontFamily>(() => GetDefaultFont());
 
-    private static Image<Rgba32>? DrawInline(Stream imgStreamResult, TaskTypes task, string userText, FlorenceResults[]
-    results, string? outFolder = null)
+    private static Image<Rgba32>? DrawInline(Stream imgStreamResult, FlorenceResults[] results, string? outFolder = null)
     {
         if (!results.Any(r => (r.OCRBBox is object && r.OCRBBox.Any())
         || (r.BoundingBoxes is object && r.BoundingBoxes.Any())
@@ -177,11 +182,6 @@ else
         outFolder ??= Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
         var penBox = Pens.Solid(Color.Red, 1.0f);
-
-        if (Florence2Model.TaskPromptsWithoutInputsDict.ContainsKey(task))
-        {
-            userText = "";
-        }
 
         var fontFamily = DefaultFont.Value;
         var font = fontFamily.CreateFont(12, FontStyle.Italic);
@@ -303,7 +303,24 @@ else
             SystemFonts.TryGet("FreeSans", out var fs) ? fs :
             null;
         }
-        return best ?? SystemFonts.Families.FirstOrDefault(f => f.Name.Contains("Sans"), SystemFonts.Families.First());
+
+        if (best is null)
+        {
+            if (SystemFonts.Families.Any())
+            {
+                Console.Error.WriteLine($"Available fonts: {string.Join(", ", SystemFonts.Families.Select(f => f.Name))}");
+
+                Console.Error.WriteLine("No suitable default font found. Try using Sans as fallback.");
+
+                best = best ?? SystemFonts.Families.FirstOrDefault(f => f.Name.Contains("Sans"), SystemFonts.Families.First());
+            }
+            else 
+            {
+                Console.Error.WriteLine("No fonts found in SystemFonts.Families. Using new FontFamily() as fallback.");
+            }
+        }
+
+        return best ?? new FontFamily();
     }
 
     private void classifyUsingLocalModel()
