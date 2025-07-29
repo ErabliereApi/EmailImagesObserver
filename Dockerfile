@@ -15,6 +15,10 @@ RUN dotnet publish "BlazorApp.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Install DejaVu fonts for SixLabors.Fonts compatibility
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+
 RUN chmod u+x docker-entrypoint.sh
 
 EXPOSE 80
