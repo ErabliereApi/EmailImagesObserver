@@ -41,6 +41,13 @@ else
                     <p class="card-text">@EmailState.MessagesCount images</p>
                 </div>
             </div>
+
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Background task status</h5>
+                    <p class="card-text">@idleClient.GetBackgroundTaskStatus()</p>
+                </div>
+            </div>
         </div>
     </div>
 }

@@ -41,6 +41,7 @@ public class HostIdleClientExitManagment : IHost
         var host = _host.StartAsync(cancellationToken);
 
         _idleTask = idleClient.RunAsync(cancellationToken);
+        idleClient.SetCurrentTaskRef(_idleTask);
         _aiQueueTask = aiQueue.BackgroundProcessAsync(cancellationToken);
 
         return host;

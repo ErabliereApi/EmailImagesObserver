@@ -342,7 +342,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                     _emailStateDb = entry.Entity;
                 }
-                else 
+                else
                 {
                     _logger.LogInformation("EmailStateDb is null no need to create a new.");
                 }
@@ -412,7 +412,8 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 _logger.LogCritical(e, $"Unmanaged exception in {nameof(FetchMessageSummariesAsync)} " + e.Message);
 
                 // try reconnect
-                try {
+                try
+                {
                     await ReconnectAsync();
                 }
                 catch (Exception e2)
@@ -424,7 +425,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (IMessageSummary message in fetched)
         {
-            if (print) 
+            if (print)
             {
                 _logger.LogInformation("{SentFolder}: new message: {Subject}", SentFolder.ToString(), message.Envelope.Subject);
             }
@@ -518,17 +519,17 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
         foreach (var attachment in attachments)
         {
-            _logger.LogDebug("Attachment details: ContentDescription={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransfertEncoding={ContentTransfertEncoding}, ContentType={ContentType}, FileName={Filename}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}", 
-                attachment.ContentDescription, 
-                attachment.ContentDisposition?.ToString(), 
-                attachment.ContentId, 
-                attachment.ContentLocation?.ToString(), 
-                attachment.ContentMd5, 
-                attachment.ContentTransferEncoding, 
-                attachment.ContentType?.ToString(), 
-                attachment.FileName, 
-                attachment.IsAttachment.ToString(), 
-                attachment.Octets.ToString(), 
+            _logger.LogDebug("Attachment details: ContentDescription={ContentDescription}, ContentDisposition={ContentDisposition}, ContentId={ContentId}, ContentLocation={ContentLocation}, ContentMd5={ContentMd5}, ContentTransfertEncoding={ContentTransfertEncoding}, ContentType={ContentType}, FileName={Filename}, IsAttachment={IsAttachment}, Octets={Octets}, PartSpecifier={PartSpecifier}",
+                attachment.ContentDescription,
+                attachment.ContentDisposition?.ToString(),
+                attachment.ContentId,
+                attachment.ContentLocation?.ToString(),
+                attachment.ContentMd5,
+                attachment.ContentTransferEncoding,
+                attachment.ContentType?.ToString(),
+                attachment.FileName,
+                attachment.IsAttachment.ToString(),
+                attachment.Octets.ToString(),
                 attachment.PartSpecifier);
 
             if (attachment.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
@@ -881,5 +882,42 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
 
         return this;
+    }
+
+    private Task? _idleTaskRef;
+
+    internal void SetCurrentTaskRef(Task idleTask)
+    {
+        _idleTaskRef = idleTask;
+    }
+
+    internal Task? GetCurrentTask()
+    {
+        return _idleTaskRef;
+    }
+
+    public string GetBackgroundTaskStatus()
+    {
+        var task = GetCurrentTask();
+        if (task == null)
+        {
+            return "No background task";
+        }
+        else if (task.IsCompleted)
+        {
+            return "Background task completed";
+        }
+        else if (task.IsCanceled)
+        {
+            return "Background task canceled";
+        }
+        else if (task.IsFaulted)
+        {
+            return "Background task faulted";
+        }
+        else
+        {
+            return "Background task running";
+        }
     }
 }
