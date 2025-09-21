@@ -1,12 +1,15 @@
+using System.Reflection;
 using BlazorApp;
 using BlazorApp.Extension;
 using BlazorApp.HostDecorator;
 
 Console.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
-
 Console.WriteLine("ASPNETCORE_ENVIRONMENT: " + Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
-
 Console.WriteLine("TimeZone: " + TimeZoneInfo.Local);
+var versions = Assembly.GetEntryAssembly()?.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+var versionArray = versions?.Split('+');
+Console.WriteLine("Version: " + versionArray?[0]);
+Console.WriteLine("Commit: " + versionArray?[1]);
 
 try
 {

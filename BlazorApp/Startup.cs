@@ -30,25 +30,30 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddLogging(config =>
+        var formatterName = Configuration["Logging:Console:FormatterName"];
+        Console.WriteLine("Logging:Console:FormatterName: " + formatterName);
+        if (formatterName == null || formatterName != "json")
         {
-            config.AddConsoleFormatter<AvoidLongTextFormatter, ConsoleFormatterOptions>();
-            config.AddConsole(options =>
+            services.AddLogging(config =>
+            {
+                config.AddConsoleFormatter<AvoidLongTextFormatter, ConsoleFormatterOptions>();
+                config.AddConsole(options =>
+                {
+                    options.FormatterName = "AvoidLongTextFormatter";
+                });
+            })
+            .Configure<ConsoleLoggerOptions>(options =>
             {
                 options.FormatterName = "AvoidLongTextFormatter";
+            })
+            .Configure<ConsoleFormatterOptions>(options =>
+            {
+
             });
-        })
-        .Configure<ConsoleLoggerOptions>(options =>
-        {
-            options.FormatterName = "AvoidLongTextFormatter";
-        })
-        .Configure<ConsoleFormatterOptions>(options => 
-        {
-            
-        });
+        }
 
         services.AddForwardedHeadersIfEnable(Configuration);
-        
+
         // Blazor app
         var mvcBuilder = services.AddRazorPages();
         if (AddAuthentificationExtension.IsAzureADAuth(Configuration))
@@ -151,7 +156,7 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
     {
         if (Configuration.DatabaseProvider() == "Sql" || Configuration.DatabaseProvider() == "Sqlite")
-{
+        {
             var database = serviceProvider.GetRequiredService<BlazorDbContext>();
 
             database.Database.Migrate();
@@ -166,7 +171,7 @@ public class Startup
         else
         {
             app.UseExceptionHandler("/Error");
-}
+        }
 
         app.UseForwardedHeadersRulesIfEnabled(logger, Configuration);
 
@@ -182,7 +187,7 @@ public class Startup
             Console.WriteLine("HTTPS redirection enabled. Middleware Added.");
             app.UseHttpsRedirection();
         }
-        else 
+        else
         {
             Console.WriteLine("HTTPS redirection disabled because DISABLE_HTTPS_REDIRECTION is set to true.");
         }
