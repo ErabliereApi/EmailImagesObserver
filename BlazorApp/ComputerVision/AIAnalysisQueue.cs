@@ -95,11 +95,7 @@ public class AIAnalysisQueue : IDisposable
         }
         else
         {
-            var azureComputerVision = scope.ServiceProvider.GetRequiredService<AzureImageMLApi>();
-
-            var client = AzureImageMLApi.Authenticate(_loginInfo.Value);
-
-            await azureComputerVision.AnalyzeImageAsync(client, image, null, _cancellationTokenSource.Token);
+            throw new NotImplementedException("No AI analysis service is configured.");
         }
     }
 

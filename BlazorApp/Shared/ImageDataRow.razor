@@ -48,9 +48,9 @@
         {
             var data = imageInfo.ImageAnalysis;
 
-            if (data.HasValue && data.Value.Item1 != null)
+            if (data != null)
             {
-                var mlv2data = data.Value.Item1;
+                var mlv2data = data;
 
                 caption = mlv2data.Caption?.Text + " " + (mlv2data.Caption?.Confidence != null ? Math.Round(mlv2data.Caption.Confidence, 2) * 100 + "%" : "");
 
@@ -63,7 +63,7 @@
         }
         else if (imageInfo.AITypes.Contains("AzureImageML"))
         {
-            var data = imageInfo.ImageAnalysis.HasValue ? imageInfo.ImageAnalysis.Value.Item2 : null;
+            var data = imageInfo.ImageAnalysis as dynamic;
 
             caption = (data?.Description.Captions as IEnumerable<dynamic>)?.Select(a => $"{a.Text} ({Math.Round(a.Confidence * 100, 2)}%)").DefaultIfEmpty(string.Empty).Aggregate((a, b) => string.Concat(a, ", ", b));
 

@@ -95,7 +95,7 @@ else
     }
     else
     {
-        <li>Azure Vision 2022</li>
+        <li>Azure Vision 2022 (Not supported anymore, the app will not work correctly)</li>
     }
 </ul>
 @code 
@@ -110,11 +110,7 @@ else
 
         try
         {
-            var client = AzureImageMLApi.Authenticate(loginInfo.Value);
-
-            var models = client.ToString();
-
-            Models = [models];
+            Models = [];
         }
         catch (Exception e)
         {
