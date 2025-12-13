@@ -33,7 +33,6 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
     private readonly ConcurrentDictionary<Guid, IObserver<ImageInfo>> _observers;
     private readonly IServiceScope _scoped;
     private readonly BlazorDbContext _context;
-    private readonly AzureImageMLApi _azureImageML;
     private readonly IConfiguration _config;
     private readonly ILogger<IdleClient> _logger;
     private EmailStates? _emailStateDb;
@@ -59,7 +58,6 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         _observers = new ConcurrentDictionary<Guid, IObserver<ImageInfo>>();
         _scoped = provider.CreateScope();
         _context = _scoped.ServiceProvider.GetRequiredService<BlazorDbContext>();
-        _azureImageML = _scoped.ServiceProvider.GetRequiredService<AzureImageMLApi>();
         _config = config;
         _logger = logger;
     }
@@ -81,7 +79,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                 // Gmail uses the [Gmail]/Sent Mail folder
                 _sentFolder = _imapClient.GetFolder(SpecialFolder.Sent);
 
-                _logger?.LogInformation(_sentFolder?.ToString());
+                _logger?.LogInformation("SentFolder toString: {SendFolder}", _sentFolder?.ToString());
             }
             else
             {
@@ -628,8 +626,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
-            var client = AzureImageMLApi.Authenticate(_loginInfo);
-            await _azureImageML.AnalyzeImageAsync(client, imageInfo, _observers, token);
+            throw new NotImplementedException("No AI service is configured.");
         }
     }
 

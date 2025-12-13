@@ -97,8 +97,7 @@ public class Startup
         services.AddOptions();
 
         // AzureImageML
-        services.AddScoped<AzureImageMLApi>(); // V1
-        services.AddScoped<AzureVisionApi>(); // V2
+        services.AddScoped<AzureVisionApi>();
         services.AddSingleton<AlerteClient>();
         services.AddSingleton<ISmtpClient>(sp => new SmtpClient(sp.GetRequiredService<IProtocolLogger>()));
         services.AddSingleton<IEmailService, ErabliereApiEmailService>();
@@ -153,7 +152,7 @@ public class Startup
         }
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<UseForwardedHeadersMethod> logger)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider, ILogger<Startup> logger)
     {
         if (Configuration.DatabaseProvider() == "Sql" || Configuration.DatabaseProvider() == "Sqlite")
         {

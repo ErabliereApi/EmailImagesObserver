@@ -3,8 +3,6 @@ using System.Net;
 
 namespace BlazorApp.Extension;
 
-public class UseForwardedHeadersMethod { }
-
 /// <summary>
 /// Class containing extention method to add Forwarded Headers middleware base on environment variable of the app.
 /// </summary>
@@ -28,7 +26,7 @@ public static class UseForwardedHeadersExtension
                 {
                     var ipInfo = network.Split("/");
 
-                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse(ipInfo[0]), int.Parse(ipInfo[1])));
+                    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse(ipInfo[0]), int.Parse(ipInfo[1])));
                 }
             });
         }
@@ -43,7 +41,7 @@ public static class UseForwardedHeadersExtension
     /// <param name="logger"></param>
     /// <param name="configuration"></param>
     /// <returns></returns>
-    public static IApplicationBuilder UseForwardedHeadersRulesIfEnabled(this IApplicationBuilder app, ILogger<UseForwardedHeadersMethod> logger, IConfiguration configuration)
+    public static IApplicationBuilder UseForwardedHeadersRulesIfEnabled(this IApplicationBuilder app, ILogger logger, IConfiguration configuration)
     {
         if (string.Equals(configuration.GetValue<string>("Forwarded_headers"), bool.TrueString, StringComparison.OrdinalIgnoreCase))
         {
@@ -73,7 +71,7 @@ public static class UseForwardedHeadersExtension
         return app;
     }
 
-    private static void DebugHeaders(IApplicationBuilder app, ILogger<UseForwardedHeadersMethod> logger, IConfiguration configuration)
+    private static void DebugHeaders(IApplicationBuilder app, ILogger logger, IConfiguration configuration)
     {
         if (string.Equals(configuration.GetValue<string>("Debug_headers"), bool.TrueString, StringComparison.OrdinalIgnoreCase))
         {

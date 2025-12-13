@@ -99,13 +99,13 @@ else
                 {
                     toSerialize = imageAnalysis;
                 }
-                else if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageAnalysis.HasValue)
+                else if (imageInfo.AITypes.Contains("AzureImageMLV2") && imageAnalysis != null)
                 {
-                    toSerialize = imageAnalysis.Value.Item1;
+                    toSerialize = imageAnalysis;
                 }
-                else if (imageAnalysis.HasValue)
+                else if (imageAnalysis != null)
                 {
-                    toSerialize = imageAnalysis.Value.Item2;
+                    toSerialize = imageAnalysis;
                 }
             }
             else if (imageInfo?.AITypes.Contains("Florence") == true)

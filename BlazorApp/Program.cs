@@ -6,7 +6,7 @@ using BlazorApp.HostDecorator;
 Console.WriteLine($"[INF] {DateTime.Now} Début de EmailImagesObserver");
 Console.WriteLine("ASPNETCORE_ENVIRONMENT: " + Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
 Console.WriteLine("TimeZone: " + TimeZoneInfo.Local);
-var versions = Assembly.GetEntryAssembly()?.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+var versions = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 var versionArray = versions?.Split('+');
 Console.WriteLine("Version: " + versionArray?[0]);
 if (versionArray?.Length > 1)
