@@ -12,8 +12,6 @@
 		<PackageReference Include="Azure.AI.Vision.ImageAnalysis" Version="1.0.0" />
 		<PackageReference Include="Florence2" Version="25.12.63049" />
 		<PackageReference Include="MailKit" Version="4.14.1" />
-		<!--<PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.1" />
-		<PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="10.0.1" />-->
 		<PackageReference Include="Microsoft.Diagnostics.Runtime" Version="3.1.512801" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
 		  <PrivateAssets>all</PrivateAssets>
@@ -23,7 +21,6 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
-		<!--<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />-->
 		<PackageReference Include="Microsoft.Identity.Web" Version="4.1.1" />
 		<PackageReference Include="Microsoft.Identity.Web.UI" Version="4.1.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />

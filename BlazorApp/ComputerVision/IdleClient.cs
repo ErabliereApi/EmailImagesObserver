@@ -712,6 +712,15 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
                         _logger.LogInformation("Done awaiting the _imapClient.IdleAsync");
                     }
+                    catch (IOException ioEx)
+                    {
+                        _logger.LogWarning(ioEx, "IOException when idling: {Message}. Waiting one minute then retry", ioEx.Message);
+
+                        await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
+
+                        // I/O exceptions always result in the client getting disconnected
+                        await ReconnectAsync();
+                    }
                     catch (Exception e)
                     {
                         _logger.LogWarning(e, "Exception when idling: {Message}", e.Message);
