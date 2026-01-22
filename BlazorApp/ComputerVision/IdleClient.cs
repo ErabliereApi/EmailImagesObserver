@@ -923,6 +923,11 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         }
         else
         {
+            if (!_imapClient.IsConnected)
+            {
+                return "Background task running but imap client disconnected";
+            }
+
             return "Background task running";
         }
     }
