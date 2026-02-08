@@ -721,6 +721,22 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                         // I/O exceptions always result in the client getting disconnected
                         await ReconnectAsync();
                     }
+                    catch (ImapProtocolException ipEx)
+                    {
+                        _logger.LogWarning(ipEx, "ImapProtocolException when idling: {Message}. Waiting one minute then retry", ipEx.Message);
+
+                        await Task.Delay(new TimeSpan(0, 1, 0), _tokenSource.Token);
+
+                        // protocol exceptions often result in the client getting disconnected
+                        try
+                        {
+                            await ReconnectAsync();
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Exception when trying to reconnect after an ImapProtocolException: {Message}", e.Message);
+                        }
+                    }
                     catch (Exception e)
                     {
                         _logger.LogWarning(e, "Exception when idling: {Message}", e.Message);
@@ -926,6 +942,26 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
             if (!_imapClient.IsConnected)
             {
                 return "Background task running but imap client disconnected";
+            }
+
+            if (!SentFolder.IsOpen)
+            {
+                return "Background task running but sent folder not open";
+            }
+
+            if (_done != null && _done.IsCancellationRequested)
+            {
+                return "Background task running but waiting for new messages cancelled";
+            }
+
+            if (_tokenSource.IsCancellationRequested)
+            {
+                return "Background task running but cancellation requested";
+            }
+
+            if (!_imapClient.IsAuthenticated)
+            {
+                return "Background task running but not authenticated";
             }
 
             return "Background task running";
