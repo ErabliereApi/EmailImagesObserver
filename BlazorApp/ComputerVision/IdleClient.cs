@@ -197,6 +197,13 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
         {
             try
             {
+                if (_done != null && _done.IsCancellationRequested)
+                {
+                    _logger.LogInformation("IdleAsync: _done is cancelled, recreating the _done CancellationTokenSource");
+                    _done.Dispose();
+                    _done = null;
+                }
+
                 await WaitForNewMessagesAsync();
 
                 _logger.LogInformation("IdleAsync: messagesArrived: {MessagesArrived}", messagesArrived);
@@ -219,8 +226,12 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException eoc)
             {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(eoc, "IdleAsync: OperationCanceledException, exiting the loop. Message: {Message}", eoc.Message);
+                }
                 break;
             }
         } while (!_tokenSource.IsCancellationRequested);
