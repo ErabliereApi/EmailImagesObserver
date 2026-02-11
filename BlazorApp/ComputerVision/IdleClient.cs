@@ -619,7 +619,7 @@ public class IdleClient : IDisposable, IObservable<ImageInfo>
 
             while (!modelSource.IsReady)
             {
-                await Task.Delay(5000);
+                await Task.Delay(5000, token);
             }
 
             var modelSession = _scoped.ServiceProvider.GetRequiredService<Florence2Model>();
